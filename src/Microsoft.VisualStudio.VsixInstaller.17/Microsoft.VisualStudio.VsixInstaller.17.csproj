@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Microsoft.Build.CentralPackageVersions" />
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
@@ -15,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.0-previews-1-31318-291" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Settings.15.0" Version="17.0.0-previews-1-31318-291" />
+    <PackageReference Include="Microsoft.VisualStudio.SDK" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Settings.15.0" VersionOverride="17.0.0-previews-1-31318-291" />
   </ItemGroup>
 
   <Import Project="..\Microsoft.VisualStudio.VsixInstaller.Shared\Microsoft.VisualStudio.VsixInstaller.Shared.projitems" Label="Shared" />
