@@ -16,8 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Testing.SupportFiles" GeneratePathProperty="true" Version="1.1.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.0-previews-1-31318-291" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Settings.15.0" Version="17.0.0-previews-1-31318-291" />
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.0-previews-1-31410-273" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Settings.15.0" Version="17.0.0-previews-1-31410-258" />
   </ItemGroup>
 
   <Import Project="..\Microsoft.VisualStudio.VsixInstaller.Shared\Microsoft.VisualStudio.VsixInstaller.Shared.projitems" Label="Shared" />
