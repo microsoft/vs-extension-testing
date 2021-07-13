@@ -6,6 +6,10 @@
     <Description>Integration test service extension for Visual Studio 2012-2019</Description>
     <RootNamespace>Microsoft.VisualStudio.IntegrationTestService</RootNamespace>
     <AssemblyName>Microsoft.VisualStudio.IntegrationTestService</AssemblyName>
+
+    <!-- Force the use of VsSDKX86ToolsPath, which uses binaries from 15.9.3039 -->
+    <BuildArchitecture>x86</BuildArchitecture>
+    <VsSDKX86ToolsPath>$(NuGetPackageRoot)microsoft.vssdk.buildtools\15.9.3039\tools\vssdk\bin</VsSDKX86ToolsPath>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -28,7 +32,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="15.1.192" PrivateAssets="all" />
+    <!-- Microsoft.VSSDK.BuildTools 17.0.3155 contains x86 targets, but they have broken dependencies. -->
+    <PackageDownload Include="Microsoft.VSSDK.BuildTools" Version="[15.9.3039]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.0.3155-preview3" PrivateAssets="all" />
     <PackageReference Include="VSSDK.Shell.11" Version="11.0.4" PrivateAssets="all" />
   </ItemGroup>
 
@@ -49,5 +58,23 @@
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
 
   <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
+
+  <UsingTask TaskName="FixVsSDKEnvironmentVariables" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+    <ParameterGroup>
+      <VsSDKToolsPath Required="true" />
+      <VsSDKX86ToolsPath Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs">
+        System.Environment.SetEnvironmentVariable("VsSDKToolsPath", System.IO.Path.GetFullPath(VsSDKToolsPath),EnvironmentVariableTarget.Process);
+        System.Environment.SetEnvironmentVariable("VsSDKX86ToolsPath", System.IO.Path.GetFullPath(VsSDKX86ToolsPath),EnvironmentVariableTarget.Process);
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!-- SetVsSDKEnvironmentVariables uses the wrong MSBuild variables to set environment variables, so fix them here. -->
+  <Target Name="FixVsSDKEnvironmentVariables" AfterTargets="SetVsSDKEnvironmentVariables">
+    <FixVsSDKEnvironmentVariables VsSDKToolsPath="$(VsSDKToolsPath)" VsSDKX86ToolsPath="$(VsSDKX86ToolsPath)" />
+  </Target>
 
 </Project>
