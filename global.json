@@ -3,5 +3,8 @@
     "version": "5.0.301",
     "rollForward": "patch",
     "allowPrerelease": false
+  },
+  "msbuild-sdks": {
+    "Microsoft.Build.CentralPackageVersions": "2.0.1"
   }
 }
