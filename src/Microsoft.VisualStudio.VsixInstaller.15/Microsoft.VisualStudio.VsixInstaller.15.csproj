@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Extensibility.Testing.SupportFiles" GeneratePathProperty="true" Version="1.1.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Settings.15.0" Version="15.0.26201" />
+    <PackageReference Include="Microsoft.VisualStudio.Settings.15.0" Version="17.0.0-previews-4-31701-039" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="15.6.56" />
   </ItemGroup>
 
