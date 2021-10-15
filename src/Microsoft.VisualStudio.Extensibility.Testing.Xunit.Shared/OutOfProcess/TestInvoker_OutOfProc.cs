@@ -84,6 +84,8 @@ namespace Xunit.OutOfProcess
             {
                 _testOutputHelper.WriteLine(format, args);
             }
+
+            public override object InitializeLifetimeService() => null;
         }
     }
 }

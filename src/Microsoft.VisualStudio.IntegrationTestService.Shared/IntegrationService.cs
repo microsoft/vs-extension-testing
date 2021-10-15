@@ -50,6 +50,8 @@ namespace Microsoft.VisualStudio.IntegrationTestService
             return (IntegrationService)Activator.GetObject(typeof(IntegrationService), uri);
         }
 
+        public override object InitializeLifetimeService() => null;
+
         public string Execute(string assemblyFilePath, string typeFullName, string methodName)
         {
             var assembly = Assembly.LoadFrom(assemblyFilePath);

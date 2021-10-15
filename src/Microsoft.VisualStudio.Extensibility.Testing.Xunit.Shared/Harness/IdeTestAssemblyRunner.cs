@@ -332,6 +332,8 @@ namespace Xunit.Harness
 
                 return _messageSink.OnMessage(message);
             }
+
+            public override object InitializeLifetimeService() => null;
         }
 
         private class IpcMessageBus : MarshalByRefObject, IMessageBus
@@ -346,6 +348,8 @@ namespace Xunit.Harness
             public void Dispose() => _messageBus.Dispose();
 
             public bool QueueMessage(IMessageSinkMessage message) => _messageBus.QueueMessage(message);
+
+            public override object InitializeLifetimeService() => null;
         }
 
         private class IpcTestAssembly : LongLivedMarshalByRefObject, ITestAssembly
