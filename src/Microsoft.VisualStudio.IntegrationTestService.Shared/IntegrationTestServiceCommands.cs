@@ -17,7 +17,7 @@ namespace Microsoft.VisualStudio.IntegrationTestService
     internal sealed class IntegrationTestServiceCommands : IDisposable
     {
         public const int CmdIdStartIntegrationTestService = 0x5201;
-        public const int CmdIdStopIntegrationTestService = 0x5204;
+        public const int CmdIdStopIntegrationTestService = 0x5202;
 
         public static readonly Guid GuidIntegrationTestCmdSet = new Guid("F3505B05-AF1E-493A-A5A5-ECEB69C42714");
 
