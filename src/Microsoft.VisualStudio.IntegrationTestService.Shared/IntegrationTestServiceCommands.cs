@@ -17,7 +17,7 @@ namespace Microsoft.VisualStudio.IntegrationTestService
     internal sealed class IntegrationTestServiceCommands : IDisposable
     {
         public const int CmdIdStartIntegrationTestService = 0x5201;
-        public const int CmdIdStopIntegrationTestService = 0x5202;
+        public const int CmdIdStopIntegrationTestService = 0x5204;
 
         public static readonly Guid GuidIntegrationTestCmdSet = new Guid("F3505B05-AF1E-493A-A5A5-ECEB69C42714");
 
@@ -81,35 +81,24 @@ namespace Microsoft.VisualStudio.IntegrationTestService
         {
             if (_startMenuCmd.Enabled)
             {
-                try
-                {
-                    Debug.WriteLine("PACKAGE: START");
-                    _service = new IntegrationService();
+                _service = new IntegrationService();
 
-                    _serviceChannel = new IpcChannel(
-                        new Hashtable
-                        {
+                _serviceChannel = new IpcChannel(
+                    new Hashtable
+                    {
                         { "name", $"Microsoft.VisualStudio.IntegrationTest.ServiceChannel_{Process.GetCurrentProcess().Id}" },
                         { "portName", _service.PortName },
-                        },
-                        clientSinkProvider: new BinaryClientFormatterSinkProvider(),
-                        serverSinkProvider: DefaultSinkProvider);
+                    },
+                    clientSinkProvider: new BinaryClientFormatterSinkProvider(),
+                    serverSinkProvider: DefaultSinkProvider);
 
-                    var serviceType = typeof(IntegrationService);
-                    _marshalledService = RemotingServices.Marshal(_service, serviceType.FullName, serviceType);
+                var serviceType = typeof(IntegrationService);
+                _marshalledService = RemotingServices.Marshal(_service, serviceType.FullName, serviceType);
 
-                    _serviceChannel.StartListening(null);
-                    ChannelServices.RegisterChannel(_serviceChannel, ensureSecurity: false);
+                _serviceChannel.StartListening(null);
+                ChannelServices.RegisterChannel(_serviceChannel, ensureSecurity: false);
 
-                    SwapAvailableCommands(_startMenuCmd, _stopMenuCmd);
-                    Debug.WriteLine($"PACKAGE: START - Swap ({_startMenuCmd.Enabled} {_stopMenuCmd.Enabled})");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.GetType().FullName);
-                    Debug.WriteLine(ex.Message);
-                    Debug.WriteLine(ex.StackTrace);
-                }
+                SwapAvailableCommands(_startMenuCmd, _stopMenuCmd);
             }
         }
 
@@ -118,7 +107,6 @@ namespace Microsoft.VisualStudio.IntegrationTestService
         {
             if (_stopMenuCmd.Enabled)
             {
-                Debug.WriteLine("PACKAGE: STOP");
                 if (_serviceChannel != null)
                 {
                     if (ChannelServices.RegisteredChannels.Contains(_serviceChannel))
@@ -135,7 +123,6 @@ namespace Microsoft.VisualStudio.IntegrationTestService
                 _service = null;
 
                 SwapAvailableCommands(_stopMenuCmd, _startMenuCmd);
-                Debug.WriteLine($"PACKAGE: STOP - Swap ({_startMenuCmd.Enabled} {_stopMenuCmd.Enabled})");
             }
         }
 
