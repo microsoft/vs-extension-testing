@@ -346,7 +346,7 @@ namespace Xunit.Harness
                 {
                     var arguments = string.Join(
                         " ",
-                        rootSuffix,
+                        string.IsNullOrEmpty(rootSuffix) ? "NoExp" : rootSuffix,
                         $"\"{installationPath}\"",
                         string.Join(" ", extensions.Select(extension => $"\"{extension}\"")));
 

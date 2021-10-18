@@ -18,6 +18,11 @@ namespace Microsoft.VisualStudio.VsixInstaller
         public static void Main(string[] args)
         {
             var rootSuffix = args[0];
+            if (rootSuffix == "NoExp")
+            {
+                rootSuffix = string.Empty;
+            }
+
             var installationPath = args[1];
             var vsixFiles = args.Skip(2).ToArray();
             Install(vsixFiles, installationPath, rootSuffix);
@@ -66,8 +71,11 @@ namespace Microsoft.VisualStudio.VsixInstaller
         private static void InstallImpl(IEnumerable<string> vsixFiles, string rootSuffix, string installationPath)
         {
             var vsExeFile = Path.Combine(installationPath, @"Common7\IDE\devenv.exe");
-
-            using (var settingsManager = ExternalSettingsManager.CreateForApplication(vsExeFile, rootSuffix))
+            var settingsManager =
+                string.IsNullOrEmpty(rootSuffix) ?
+                ExternalSettingsManager.CreateForApplication(vsExeFile) :
+                ExternalSettingsManager.CreateForApplication(vsExeFile, rootSuffix);
+            using (settingsManager)
             {
                 var extensionManager = new ExtensionManagerService(settingsManager);
                 IVsExtensionManager vsExtensionManager = (IVsExtensionManager)(object)extensionManager;
