@@ -228,7 +228,8 @@ namespace Xunit.Harness
                 }
 
                 var requiredExtensions = assemblyInfo.GetCustomAttributes(typeof(RequireExtensionAttribute));
-                extensionFiles = extensionFiles.Union(requiredExtensions.Select(attributeInfo => attributeInfo.GetConstructorArguments().First().ToString()));
+                extensionFiles = extensionFiles.Union(requiredExtensions.Select(attributeInfo =>
+                    attributeInfo is ReflectionAttributeInfo attr && attr.Attribute is RequireExtensionAttribute attrVal ? attrVal.ExtensionFile : attributeInfo.GetConstructorArguments().First().ToString()));
             }
 
             return extensionFiles.ToImmutableList();
