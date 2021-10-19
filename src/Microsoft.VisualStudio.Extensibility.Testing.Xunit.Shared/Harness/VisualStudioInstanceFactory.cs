@@ -195,7 +195,7 @@ namespace Xunit.Harness
 
         private static IEnumerable<Tuple<string, Version>> EnumerateVisualStudioInstancesInRegistry()
         {
-            using (var software = Registry.LocalMachine.OpenSubKey("SOFTWARE"))
+            using (var software = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey("SOFTWARE"))
             using (var microsoft = software.OpenSubKey("Microsoft"))
             using (var visualStudio = microsoft.OpenSubKey("VisualStudio"))
             {
@@ -206,13 +206,36 @@ namespace Xunit.Harness
                         continue;
                     }
 
-                    string path = Registry.GetValue($@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\{versionKey}\Setup\VS", "ProductDir", null) as string;
-                    if (string.IsNullOrEmpty(path) || !File.Exists(Path.Combine(path, @"Common7\IDE\devenv.exe")))
+                    using (var verKey = visualStudio.OpenSubKey(versionKey))
                     {
-                        continue;
+                        var setupKey = verKey.OpenSubKey("Setup");
+                        if (setupKey == null)
+                        {
+                            continue;
+                        }
+
+                        using (setupKey)
+                        {
+                            var vsKey = setupKey.OpenSubKey("VS");
+                            if (vsKey == null)
+                            {
+                                continue;
+                            }
+
+                            using (vsKey)
+                            {
+                                var path = vsKey.GetValue("ProductDir", null) as string;
+                                if (string.IsNullOrEmpty(path) || !File.Exists(Path.Combine(path, @"Common7\IDE\devenv.exe")))
+                                {
+                                    continue;
+                                }
+
+                                yield return Tuple.Create(path, version);
+                            }
+                        }
+
                     }
 
-                    yield return Tuple.Create(path, version);
                 }
             }
         }
@@ -326,6 +349,11 @@ namespace Xunit.Harness
 
         private static async Task<Process> StartNewVisualStudioProcessAsync(string installationPath, Version version, ImmutableList<string> extensionFiles)
         {
+            if (installationPath[installationPath.Length - 1] == Path.DirectorySeparatorChar)
+            {
+                installationPath = installationPath.Substring(0, installationPath.Length - 1);
+            }
+
             var vsExeFile = Path.Combine(installationPath, @"Common7\IDE\devenv.exe");
             var vsRegEditExeFile = Path.Combine(installationPath, @"Common7\IDE\VsRegEdit.exe");
             var key = installationPath + version;
@@ -349,7 +377,6 @@ namespace Xunit.Harness
                         string.IsNullOrEmpty(rootSuffix) ? "NoExp" : rootSuffix,
                         $"\"{installationPath}\"",
                         string.Join(" ", extensions.Select(extension => $"\"{extension}\"")));
-
                     var installProcessStartInfo = CreateSilentStartInfo(installerAssemblyPath, arguments);
                     installProcessStartInfo.RedirectStandardError = true;
                     installProcessStartInfo.RedirectStandardOutput = true;
