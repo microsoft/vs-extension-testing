@@ -30,7 +30,7 @@ namespace Xunit.Harness
             _testAssemblyRunner = new XunitTestAssemblyRunner(testAssembly, reconstructedTestCases.ToArray(), diagnosticMessageSink, executionMessageSink, executionOptions);
         }
 
-        public Tuple<int, int, int, decimal> RunTestCollection(IMessageBus messageBus, ITestCollection testCollection, IXunitTestCase[] testCases)
+        public Tuple<int, int, int, decimal> RunTestCollection()
         {
             using (var cancellationTokenSource = new CancellationTokenSource())
             {

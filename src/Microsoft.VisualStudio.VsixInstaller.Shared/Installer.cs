@@ -97,7 +97,14 @@ namespace Microsoft.VisualStudio.VsixInstaller
                         }
 #endif
 
-                        extensionManager.Uninstall(extensionManager.GetInstalledExtension(extension.Header.Identifier));
+                        var installed = extensionManager.GetInstalledExtension(extension.Header.Identifier);
+                        var path = installed.InstallPath;
+                        extensionManager.Uninstall(installed);
+                        try
+                        {
+                            System.IO.Directory.Delete(path, true);
+                        }
+                        catch { }
                     }
                 }
 
