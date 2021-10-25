@@ -197,20 +197,25 @@ namespace Xunit.Harness
                             }
 
                             Tuple<int, int, int, decimal> result = null;
-                            var ipcFailed = false;
+                            var needRestart = false;
                             try
                             {
                                 using (var runner = visualStudioContext.Instance.TestInvoker.CreateTestAssemblyRunner(new IpcTestAssembly(TestAssembly), new[] { testCase }, diagnosticMessageSink, executionMessageSinkFilter, ExecutionOptions))
                                 {
-                                    result = runner.RunTestCollection();
+                                    var taskTest = Task.Run(() => result = runner.RunTestCollection());
+                                    var taskTimeout = Task.Delay(60000);
+                                    if (await Task.WhenAny(taskTest, taskTimeout).ConfigureAwait(true) != taskTest)
+                                    {
+                                        needRestart = true;
+                                    }
                                 }
                             }
                             catch (System.Runtime.Remoting.RemotingException)
                             {
-                                ipcFailed = true;
+                                needRestart = true;
                             }
 
-                            if (ipcFailed || executionMessageSinkFilter.IPCChannelFail || diagnosticMessageSink.IPCChannelFail)
+                            if (needRestart || executionMessageSinkFilter.IPCChannelFail || diagnosticMessageSink.IPCChannelFail)
                             {
                                 executionMessageSinkFilter.ResetIPCChannelFail();
                                 diagnosticMessageSink.ResetIPCChannelFail();
