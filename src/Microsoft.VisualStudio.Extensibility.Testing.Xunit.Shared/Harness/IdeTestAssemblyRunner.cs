@@ -203,10 +203,17 @@ namespace Xunit.Harness
                                 using (var runner = visualStudioContext.Instance.TestInvoker.CreateTestAssemblyRunner(new IpcTestAssembly(TestAssembly), new[] { testCase }, diagnosticMessageSink, executionMessageSinkFilter, ExecutionOptions))
                                 {
                                     var taskTest = Task.Run(() => result = runner.RunTestCollection());
-                                    var taskTimeout = Task.Delay(60000);
-                                    if (await Task.WhenAny(taskTest, taskTimeout).ConfigureAwait(true) != taskTest)
+                                    if (Debugger.IsAttached)
                                     {
-                                        needRestart = true;
+                                        await taskTest.ConfigureAwait(true);
+                                    }
+                                    else
+                                    {
+                                        var taskTimeout = Task.Delay(60000);
+                                        if (await Task.WhenAny(taskTest, taskTimeout).ConfigureAwait(true) != taskTest)
+                                        {
+                                            needRestart = true;
+                                        }
                                     }
                                 }
                             }
