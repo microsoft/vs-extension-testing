@@ -221,6 +221,13 @@ namespace Xunit.Harness
                             {
                                 needRestart = true;
                             }
+                            catch (System.InvalidOperationException ex)
+                            {
+                                if (ex?.Message == "Failed to set the foreground window.")
+                                {
+                                    needRestart = true;
+                                }
+                            }
 
                             if (needRestart || executionMessageSinkFilter.IPCChannelFail || diagnosticMessageSink.IPCChannelFail)
                             {
