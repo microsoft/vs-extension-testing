@@ -12,7 +12,7 @@ env:
   TreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BUILDCONFIGURATION: Release
-  codecov_token: c8862aaf-0c6d-48ee-a4a7-e88af58ef469
+  codecov_token: 4dc9e7e2-6b01-4932-a180-847b52b43d35 # Get a new one from https://codecov.io/
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
@@ -23,6 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
+        - ubuntu-20.04
+        - macos-latest
         - windows-latest
 
     steps:
@@ -37,19 +39,12 @@ jobs:
     - name: Set pipeline variables based on source
       run: azure-pipelines/variables/_pipelines.ps1
       shell: pwsh
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
-    - name: Prepare Visual Studio
-      run: '&"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\devenv.exe" /RootSuffix Exp /ResetSettings General.vssettings /Command File.Exit'
     - name: build
-      run: msbuild /t:Build /p:Configuration=${{ env.BUILDCONFIGURATION }} /v:m /bl:"bin/build_logs/build.binlog"
+      run: dotnet build --no-restore -c ${{ env.BUILDCONFIGURATION }} /v:m /bl:"bin/build_logs/build.binlog"
     - name: pack
-      run: msbuild /t:Pack /p:Configuration=${{ env.BUILDCONFIGURATION }} /v:m /bl:"bin/build_logs/pack.binlog"
+      run: dotnet pack --no-build -c ${{ env.BUILDCONFIGURATION }} /v:m /bl:"bin/build_logs/pack.binlog"
     - name: test
-      run: dotnet test --no-build -c ${{ env.BUILDCONFIGURATION }} /bl:"bin/build_logs/test.binlog" --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true /m:1 --logger trx --settings "${{ github.workspace }}/.github/workflows/${{ runner.os }}.runsettings"
-    - name: Test EqualExceptionLegacy
-      run: test/EqualExceptionLegacy/Test.ps1 -binlog bin/build_logs/EqualExceptionLegacy.binlog
-      shell: pwsh
+      run: dotnet test --no-build -c ${{ env.BUILDCONFIGURATION }} /bl:"bin/build_logs/test.binlog" --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --logger trx --settings "${{ github.workspace }}/.github/workflows/${{ runner.os }}.runsettings"
     - name: Update pipeline variables based on build outputs
       run: azure-pipelines/variables/_pipelines.ps1
       shell: pwsh
@@ -67,9 +62,8 @@ jobs:
     - name: Upload variables
       uses: actions/upload-artifact@v1
       with:
-        name: variables
+        name: variables-${{ runner.os }}
         path: obj/_artifacts/variables
-      if: runner.os == 'Windows'
       continue-on-error: true
     - name: Upload build_logs
       if: always()
@@ -85,13 +79,6 @@ jobs:
         name: testResults-${{ runner.os }}
         path: obj/_artifacts/testResults
       continue-on-error: true
-    - name: Upload rawTestResults
-      if: always()
-      uses: actions/upload-artifact@v1
-      with:
-        name: rawTestResults-${{ runner.os }}
-        path: obj/_artifacts/rawTestResults
-      continue-on-error: true
     - name: Upload coverageResults
       if: always()
       uses: actions/upload-artifact@v1
@@ -102,16 +89,15 @@ jobs:
     - name: Upload symbols
       uses: actions/upload-artifact@v1
       with:
-        name: symbols
+        name: symbols-${{ runner.os }}
         path: obj/_artifacts/symbols
-      if: runner.os == 'Windows'
       continue-on-error: true
     - name: Upload deployables
       uses: actions/upload-artifact@v1
       with:
-        name: deployables
+        name: deployables-${{ runner.os }}
         path: obj/_artifacts/deployables
-      if: always() && runner.os == 'Windows'
+      if: always()
     - name: Publish code coverage results to codecov.io
       run: bash <(curl -s https://codecov.io/bash)
       shell: bash

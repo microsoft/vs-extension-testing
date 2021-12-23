@@ -6,5 +6,5 @@ return
 
 $nbgv = & "$PSScriptRoot\..\Get-nbgv.ps1"
 [string]::join(',',(@{
-    ('ExtensionTestingVersion') = & { (& $nbgv get-version --project "$PSScriptRoot\..\..\src\ExtensionTesting" --format json | ConvertFrom-Json).AssemblyVersion };
+    ('LibraryNoDotsVersion') = & { (& $nbgv get-version --project "$PSScriptRoot\..\..\src\LibraryName" --format json | ConvertFrom-Json).AssemblyVersion };
 }.GetEnumerator() |% { "$($_.key)=$($_.value)" }))
