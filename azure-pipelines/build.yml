@@ -3,7 +3,6 @@ parameters:
   type: object
   default:
     vmImage: windows-2022
-- name: includeMacOS
 - name: EnableAPIScan
   type: boolean
   default: false
@@ -37,34 +36,9 @@ jobs:
       parameters:
         EnableAPIScan: ${{ parameters.EnableAPIScan }}
 
-  - template: expand-template.yml
-
-- job: Linux
-  pool:
-    vmImage: Ubuntu 20.04
-  steps:
-  - checkout: self
-    clean: true
-  - template: install-dependencies.yml
-  - template: dotnet.yml
-  - template: expand-template.yml
-
-- job: macOS
-  condition: ${{ parameters.includeMacOS }}
-  pool:
-    vmImage: macOS-10.15
-  steps:
-  - checkout: self
-    clean: true
-  - template: install-dependencies.yml
-  - template: dotnet.yml
-  - template: expand-template.yml
-
 - job: WrapUp
   dependsOn:
   - Windows
-  - Linux
-  - macOS
   pool:
     vmImage: Ubuntu 20.04
   condition: succeededOrFailed()
@@ -75,5 +49,3 @@ jobs:
     parameters:
       initArgs: -NoRestore
   - template: publish-codecoverage.yml
-    parameters:
-      includeMacOS: ${{ parameters.includeMacOS }}
