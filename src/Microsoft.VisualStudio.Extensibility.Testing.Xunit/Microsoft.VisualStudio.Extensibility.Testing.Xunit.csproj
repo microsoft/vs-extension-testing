@@ -24,7 +24,7 @@
       Override the reference to a secure version, but exclude it from the build and packaging.
     -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" ExcludeAssets="all" PrivateAssets="all" />
-    <PackageReference Include="xunit.assert" Version="2.4.1" />
+    <PackageReference Include="xunit.assert" Version="2.4.2" />
     <PackageReference Include="xunit.extensibility.core" Version="2.4.1" />
     <PackageReference Include="xunit.extensibility.execution" Version="2.4.1" />
   </ItemGroup>
