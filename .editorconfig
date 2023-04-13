@@ -20,13 +20,14 @@ indent_style = space
 indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
+charset = utf-8-bom
 
 # Xml project files
-[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj,runsettings}]
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj,msbuildproj}]
 indent_size = 2
 
 # Xml config files
-[*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
+[*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct,runsettings}]
 indent_size = 2
 
 # JSON files
@@ -166,9 +167,6 @@ csharp_prefer_braces = true:silent
 
 # SA1130: Use lambda syntax
 dotnet_diagnostic.SA1130.severity = silent
-
-# CA1508: Avoid dead conditional code
-dotnet_diagnostic.CA1508.severity = warning
 
 # IDE1006: Naming Styles - StyleCop handles these for us
 dotnet_diagnostic.IDE1006.severity = none

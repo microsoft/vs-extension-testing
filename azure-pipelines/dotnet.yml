@@ -30,7 +30,7 @@ steps:
   displayName: dotnet test -f net46
   inputs:
     command: test
-    arguments: $(Build.Repository.LocalPath)/src/Microsoft.VisualStudio.Extensibility.Testing.Xunit.Legacy.IntegrationTests/Microsoft.VisualStudio.Extensibility.Testing.Xunit.Legacy.IntegrationTests.csproj --no-build -c $(BuildConfiguration) -f net46 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net46.binlog"
+    arguments: $(Build.Repository.LocalPath)/src/Microsoft.VisualStudio.Extensibility.Testing.Xunit.Legacy.IntegrationTests/Microsoft.VisualStudio.Extensibility.Testing.Xunit.Legacy.IntegrationTests.csproj --no-build -c $(BuildConfiguration) -f net46 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net46.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net46.txt
     testRunTitle: net46-$(Agent.JobName)
   condition: eq(variables['SignTypeSelection'], '')
 
@@ -38,7 +38,7 @@ steps:
   displayName: dotnet test -f net472
   inputs:
     command: test
-    arguments: $(Build.Repository.LocalPath)/src/Microsoft.VisualStudio.Extensibility.Testing.Xunit.IntegrationTests/Microsoft.VisualStudio.Extensibility.Testing.Xunit.IntegrationTests.csproj --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472.binlog"
+    arguments: $(Build.Repository.LocalPath)/src/Microsoft.VisualStudio.Extensibility.Testing.Xunit.IntegrationTests/Microsoft.VisualStudio.Extensibility.Testing.Xunit.IntegrationTests.csproj --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472.txt
     testRunTitle: net472-$(Agent.JobName)
   condition: eq(variables['SignTypeSelection'], '')
 

@@ -40,7 +40,7 @@ jobs:
     - name: Add msbuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
     - name: Prepare Visual Studio
-      run: '&"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\devenv.exe" /RootSuffix Exp /ResetSettings General.vssettings /Command File.Exit'
+      run: '&"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.exe" /RootSuffix Exp /ResetSettings General.vssettings /Command File.Exit'
     - name: build
       run: msbuild /t:Build /p:Configuration=${{ env.BUILDCONFIGURATION }} /v:m /bl:"bin/build_logs/build.binlog"
     - name: pack
@@ -67,9 +67,8 @@ jobs:
     - name: Upload variables
       uses: actions/upload-artifact@v1
       with:
-        name: variables
+        name: variables-${{ runner.os }}
         path: obj/_artifacts/variables
-      if: runner.os == 'Windows'
       continue-on-error: true
     - name: Upload build_logs
       if: always()
@@ -102,16 +101,15 @@ jobs:
     - name: Upload symbols
       uses: actions/upload-artifact@v1
       with:
-        name: symbols
+        name: symbols-${{ runner.os }}
         path: obj/_artifacts/symbols
-      if: runner.os == 'Windows'
       continue-on-error: true
     - name: Upload deployables
       uses: actions/upload-artifact@v1
       with:
-        name: deployables
+        name: deployables-${{ runner.os }}
         path: obj/_artifacts/deployables
-      if: always() && runner.os == 'Windows'
+      if: always()
     - name: Publish code coverage results to codecov.io
       run: bash <(curl -s https://codecov.io/bash)
       shell: bash

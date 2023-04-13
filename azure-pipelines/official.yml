@@ -23,6 +23,10 @@ parameters:
   type: string
   default: Test
   values: [ 'Test', 'Real' ]
+- name: EnableAPIScan
+  displayName: Run APIScan
+  type: boolean
+  default: true
 
 variables:
   NugetSecurityAnalysisWarningLevel: none # nuget.config requires signed packages by trusted owners
@@ -44,7 +48,8 @@ stages:
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEngSS-MicroBuild2019-1ES
+      EnableAPIScan: ${{ parameters.EnableAPIScan }}
+      windowsPool: VSEngSS-MicroBuild2022-1ES
 
 - stage: symbol_archive
   displayName: Symbol archival
