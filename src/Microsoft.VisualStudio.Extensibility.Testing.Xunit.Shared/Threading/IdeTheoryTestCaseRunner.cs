@@ -17,14 +17,19 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeTheoryTestCaseRunner : XunitTheoryTestCaseRunner
+    public sealed class IdeTheoryTestCaseRunner
+#if USES_XUNIT_3
+        : TestRunnerBase
+#else
+        : XunitTheoryTestCaseRunner
+#endif
     {
         public IdeTheoryTestCaseRunner(
             WpfTestSharedData sharedData,
             VisualStudioInstanceKey visualStudioInstanceKey,
             IXunitTestCase testCase,
             string displayName,
-            string skipReason,
+            string? skipReason,
             object[] constructorArguments,
             IMessageSink diagnosticMessageSink,
             IMessageBus messageBus,
@@ -56,7 +61,11 @@ namespace Xunit.Threading
             }
             else if (SharedData.Exception is not null)
             {
+#if USES_XUNIT_3
+                return new ErrorReportingIdeTestRunner(SharedData.Exception);
+#else
                 return new ErrorReportingIdeTestRunner(SharedData.Exception, test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, skipReason, beforeAfterAttributes, aggregator, cancellationTokenSource);
+#endif
             }
             else
             {

@@ -13,11 +13,17 @@ namespace Xunit.Sdk
     using System.Threading.Tasks;
     using Xunit.v3;
 
+#if USES_XUNIT_3
+    using BeforeAfterTestAttributeType = Xunit.v3.IBeforeAfterTestAttribute;
+#else
+    using BeforeAfterTestAttributeType = Xunit.Sdk.BeforeAfterTestAttribute;
+#endif
+
     public class XunitTestInvoker
     {
         private static MethodInfo? _startAsTaskOpenGenericMethod;
 
-        public XunitTestInvoker(IXunitTest test, IMessageBus messageBus, Type testClass, object[] constructorArguments, MethodInfo testMethod, object[] testMethodArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        public XunitTestInvoker(IXunitTest test, IMessageBus messageBus, Type testClass, object[] constructorArguments, MethodInfo testMethod, object[] testMethodArguments, IReadOnlyList<BeforeAfterTestAttributeType> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
             Test = test;
             MessageBus = messageBus;
@@ -42,7 +48,7 @@ namespace Xunit.Sdk
 
         public object[] TestMethodArguments { get; }
 
-        public IReadOnlyList<BeforeAfterTestAttribute> BeforeAfterAttributes { get; }
+        public IReadOnlyList<BeforeAfterTestAttributeType> BeforeAfterAttributes { get; }
 
         public ExceptionAggregator Aggregator { get; }
 

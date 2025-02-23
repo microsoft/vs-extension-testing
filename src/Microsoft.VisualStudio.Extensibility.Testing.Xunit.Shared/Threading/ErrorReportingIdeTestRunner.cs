@@ -20,14 +20,29 @@ namespace Xunit.Threading
     {
         private readonly Exception _exception;
 
+#if USES_XUNIT_3
+        public ErrorReportingIdeTestRunner(Exception exception)
+        {
+            _exception = exception;
+        }
+#else
         public ErrorReportingIdeTestRunner(Exception exception, ITest test, IMessageBus messageBus, Type testClass, object?[] constructorArguments, MethodInfo testMethod, object?[]? testMethodArguments, string skipReason, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
             : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, skipReason, beforeAfterAttributes, aggregator, cancellationTokenSource)
         {
             _exception = exception;
         }
+#endif
 
+#if USES_XUNIT_3
+        protected override ValueTask<TimeSpan> RunTest(XunitTestRunnerContext ctxt)
+#else
         protected override Task<decimal> InvokeTestMethodAsync(ExceptionAggregator aggregator)
+#endif
         {
+#if USES_XUNIT_3
+            var aggregator = ctxt.Aggregator;
+#endif
+
 #if !USES_XUNIT_3
             if (aggregator is null)
             {

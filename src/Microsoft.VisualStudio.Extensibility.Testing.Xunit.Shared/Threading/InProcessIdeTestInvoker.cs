@@ -17,10 +17,16 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
+#if USES_XUNIT_3
+    using BeforeAfterTestAttributeType = Xunit.v3.IBeforeAfterTestAttribute;
+#else
+    using BeforeAfterTestAttributeType = Xunit.Sdk.BeforeAfterTestAttribute;
+#endif
+
     public class InProcessIdeTestInvoker : XunitTestInvoker
     {
-        private readonly Stack<BeforeAfterTestAttribute> _beforeAfterAttributesRun = new();
-        private readonly IReadOnlyList<BeforeAfterTestAttribute> _beforeAfterAttributes;
+        private readonly Stack<BeforeAfterTestAttributeType> _beforeAfterAttributesRun = new();
+        private readonly IReadOnlyList<BeforeAfterTestAttributeType> _beforeAfterAttributes;
 
         public InProcessIdeTestInvoker(
 #if USES_XUNIT_3
@@ -33,7 +39,7 @@ namespace Xunit.Threading
             object[] constructorArguments,
             MethodInfo testMethod,
             object[] testMethodArguments,
-            IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes,
+            IReadOnlyList<BeforeAfterTestAttributeType> beforeAfterAttributes,
             ExceptionAggregator aggregator,
             CancellationTokenSource cancellationTokenSource)
             : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, beforeAfterAttributes, aggregator, cancellationTokenSource)
@@ -46,12 +52,18 @@ namespace Xunit.Threading
             new
 #endif
 #if USES_XUNIT_3
-            ValueTask
+            ValueTask<TimeSpan>
 #else
             Task<decimal>
 #endif
             RunAsync()
         {
+#pragma warning disable SA1009 // Closing parenthesis should be spaced correctly
+#pragma warning disable SA1111 // Closing parenthesis should be on line of last parameter
+#pragma warning disable SA1001 // Commas should be spaced correctly
+#pragma warning disable SA1113 // Comma should be on the same line as previous parameter
+#pragma warning disable SA1115 // Parameter should follow comma
+#pragma warning disable SA1116 // Split parameters should start on line after declaration
             return Aggregator.RunAsync(async delegate
             {
                 if (!CancellationTokenSource.IsCancellationRequested)
@@ -111,10 +123,23 @@ namespace Xunit.Threading
                     }
                 }
 
-#if !USES_XUNIT_3
+#if USES_XUNIT_3
+                // TODO: Measure time correctly
+                return TimeSpan.Zero;
+#else
                 return Timer.Total;
 #endif
-            });
+            }
+#pragma warning restore SA1116 // Split parameters should start on line after declaration
+#if USES_XUNIT_3
+            , TimeSpan.Zero
+#endif
+            );
+#pragma warning restore SA1115 // Parameter should follow comma
+#pragma warning restore SA1113 // Comma should be on the same line as previous parameter
+#pragma warning restore SA1001 // Commas should be spaced correctly
+#pragma warning restore SA1111 // Closing parenthesis should be on line of last parameter
+#pragma warning restore SA1009 // Closing parenthesis should be spaced correctly
         }
 
         protected override object CreateTestClass()

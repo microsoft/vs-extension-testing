@@ -51,20 +51,29 @@ namespace Xunit.Threading
         }
 #endif
 
-        public override Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
-            TestCaseRunner<IXunitTestCase> runner;
+            string displayName =
+#if USES_XUNIT_3
+                TestCaseDisplayName;
+#else
+                DisplayName;
+#endif
+
             if (!string.IsNullOrEmpty(SkipReason))
             {
                 // Use XunitTheoryTestCaseRunner so the skip gets reported without trying to open VS
-                runner = new XunitTheoryTestCaseRunner(this, DisplayName, SkipReason, constructorArguments, diagnosticMessageSink, messageBus, aggregator, cancellationTokenSource);
+#if USES_XUNIT_3
+                var tests = await aggregator.RunAsync(CreateTests, Array.Empty<IXunitTest>());
+                return await XunitTestCaseRunner.Instance.Run(this, tests, messageBus, aggregator, cancellationTokenSource, displayName, SkipReason, ExplicitOption.Off, constructorArguments);
+#else
+                return await new XunitTheoryTestCaseRunner(this, displayName, SkipReason, constructorArguments, diagnosticMessageSink, messageBus, aggregator, cancellationTokenSource).RunAsync();
+#endif
             }
             else
             {
-                runner = new IdeTheoryTestCaseRunner(SharedData, VisualStudioInstanceKey, this, DisplayName, SkipReason, constructorArguments, diagnosticMessageSink, messageBus, aggregator, cancellationTokenSource);
+                return await new IdeTheoryTestCaseRunner(SharedData, VisualStudioInstanceKey, this, displayName, SkipReason, constructorArguments, diagnosticMessageSink, messageBus, aggregator, cancellationTokenSource).RunAsync();
             }
-
-            return runner.RunAsync();
         }
     }
 }
