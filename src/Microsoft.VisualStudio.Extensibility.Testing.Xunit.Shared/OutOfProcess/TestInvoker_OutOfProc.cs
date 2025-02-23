@@ -42,7 +42,11 @@ namespace Xunit.OutOfProcess
         }
 
         public Tuple<decimal, Exception> InvokeTest(
+#if USES_XUNIT_3
+            IXunitTest test,
+#else
             ITest test,
+#endif
             IMessageBus messageBus,
             Type testClass,
             object?[]? constructorArguments,

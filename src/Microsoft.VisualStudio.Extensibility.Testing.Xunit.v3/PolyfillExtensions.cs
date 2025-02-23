@@ -14,7 +14,7 @@ namespace Xunit.Sdk
         public static object? CreateTestClass(
             this ITest test,
             Type testClassType,
-            object[] constructorArguments,
+            object?[]? constructorArguments,
             IMessageBus messageBus,
             CancellationTokenSource cancellationTokenSource)
         {
