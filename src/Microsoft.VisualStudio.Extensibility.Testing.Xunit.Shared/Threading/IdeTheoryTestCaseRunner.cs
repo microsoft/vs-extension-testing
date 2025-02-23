@@ -8,6 +8,7 @@ namespace Xunit.Threading
     using System.Diagnostics;
     using System.Reflection;
     using System.Threading;
+    using System.Threading.Tasks;
 #if !USES_XUNIT_3
     using Xunit.Abstractions;
 #endif
@@ -18,12 +19,11 @@ namespace Xunit.Threading
 #endif
 
     public sealed class IdeTheoryTestCaseRunner
-#if USES_XUNIT_3
-        : TestRunnerBase
-#else
+#if !USES_XUNIT_3
         : XunitTheoryTestCaseRunner
 #endif
     {
+#if !USES_XUNIT_3
         public IdeTheoryTestCaseRunner(
             WpfTestSharedData sharedData,
             VisualStudioInstanceKey visualStudioInstanceKey,
@@ -61,16 +61,33 @@ namespace Xunit.Threading
             }
             else if (SharedData.Exception is not null)
             {
-#if USES_XUNIT_3
-                return new ErrorReportingIdeTestRunner(SharedData.Exception);
-#else
                 return new ErrorReportingIdeTestRunner(SharedData.Exception, test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, skipReason, beforeAfterAttributes, aggregator, cancellationTokenSource);
-#endif
             }
             else
             {
                 throw new NotSupportedException($"{nameof(IdeTheoryAttribute)} can only be used with the {nameof(IdeTestFramework)} test framework");
             }
         }
+#endif
+
+#if USES_XUNIT_3
+        internal static async Task<RunSummary> RunAsync(WpfTestSharedData sharedData, IXunitTest test, IMessageBus messageBus, object[] constructorArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        {
+            if (Process.GetCurrentProcess().ProcessName == "devenv")
+            {
+                // We are already running inside Visual Studio
+                // TODO: Verify version under test
+                return await new InProcessIdeTestRunner().Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+            }
+            else if (sharedData.Exception is not null)
+            {
+                return await new ErrorReportingIdeTestRunner(sharedData.Exception).Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+            }
+            else
+            {
+                throw new NotSupportedException($"{nameof(IdeTheoryAttribute)} can only be used with the {nameof(IdeTestFramework)} test framework");
+            }
+        }
+#endif
     }
 }

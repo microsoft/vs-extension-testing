@@ -26,7 +26,7 @@ namespace Xunit.Threading
     public class InProcessIdeTestInvoker : XunitTestInvoker
     {
         private readonly Stack<BeforeAfterTestAttributeType> _beforeAfterAttributesRun = new();
-        private readonly IReadOnlyList<BeforeAfterTestAttributeType> _beforeAfterAttributes;
+        private readonly IReadOnlyCollection<BeforeAfterTestAttributeType> _beforeAfterAttributes;
 
         public InProcessIdeTestInvoker(
 #if USES_XUNIT_3
@@ -39,7 +39,11 @@ namespace Xunit.Threading
             object[] constructorArguments,
             MethodInfo testMethod,
             object[] testMethodArguments,
+#if USES_XUNIT_3
+            IReadOnlyCollection<BeforeAfterTestAttributeType> beforeAfterAttributes,
+#else
             IReadOnlyList<BeforeAfterTestAttributeType> beforeAfterAttributes,
+#endif
             ExceptionAggregator aggregator,
             CancellationTokenSource cancellationTokenSource)
             : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, beforeAfterAttributes, aggregator, cancellationTokenSource)

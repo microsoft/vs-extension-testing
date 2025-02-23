@@ -23,7 +23,7 @@ namespace Xunit.Sdk
     {
         private static MethodInfo? _startAsTaskOpenGenericMethod;
 
-        public XunitTestInvoker(IXunitTest test, IMessageBus messageBus, Type testClass, object[] constructorArguments, MethodInfo testMethod, object[] testMethodArguments, IReadOnlyList<BeforeAfterTestAttributeType> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        public XunitTestInvoker(IXunitTest test, IMessageBus messageBus, Type testClass, object[] constructorArguments, MethodInfo testMethod, object[] testMethodArguments, IReadOnlyCollection<BeforeAfterTestAttributeType> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
             Test = test;
             MessageBus = messageBus;
@@ -48,7 +48,7 @@ namespace Xunit.Sdk
 
         public object[] TestMethodArguments { get; }
 
-        public IReadOnlyList<BeforeAfterTestAttributeType> BeforeAfterAttributes { get; }
+        public IReadOnlyCollection<BeforeAfterTestAttributeType> BeforeAfterAttributes { get; }
 
         public ExceptionAggregator Aggregator { get; }
 

@@ -41,7 +41,7 @@ namespace Xunit.Threading
             string? sourceFilePath = null,
             int? sourceLineNumber = null,
             int? timeout = null)
-            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, includeRootSuffixInDisplayName: false, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
         {
         }
 #else
@@ -51,20 +51,31 @@ namespace Xunit.Threading
         }
 #endif
 
-        public override Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+#if !USES_XUNIT_3 // Test case no longer responsible for running. TODO: Find out where to plug this logic.
+        public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
-            TestCaseRunner<IXunitTestCase> runner;
+            string displayName =
+#if USES_XUNIT_3
+                TestCaseDisplayName;
+#else
+                DisplayName;
+#endif
+
             if (!string.IsNullOrEmpty(SkipReason))
             {
                 // Use XunitTestCaseRunner so the skip gets reported without trying to open VS
-                runner = new XunitTestCaseRunner(this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource);
+#if USES_XUNIT_3
+                var tests = await aggregator.RunAsync(CreateTests, Array.Empty<IXunitTest>());
+                return await XunitTestCaseRunner.Instance.Run(this, tests, messageBus, aggregator, cancellationTokenSource, displayName, SkipReason, ExplicitOption.Off, constructorArguments);
+#else
+                return await new XunitTestCaseRunner(this, displayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource).RunAsync();
+#endif
             }
             else
             {
-                runner = new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey, this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource);
+                return await new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey, this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource).RunAsync();
             }
-
-            return runner.RunAsync();
         }
+#endif
     }
 }

@@ -41,7 +41,7 @@ namespace Xunit.Threading
             string? sourceFilePath = null,
             int? sourceLineNumber = null,
             int? timeout = null)
-            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, includeRootSuffixInDisplayName: false, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
         {
         }
 #else
@@ -51,6 +51,7 @@ namespace Xunit.Threading
         }
 #endif
 
+#if !USES_XUNIT_3 // Test case no longer responsible for running. TODO: Find out where to plug this logic.
         public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
             string displayName =
@@ -72,8 +73,13 @@ namespace Xunit.Threading
             }
             else
             {
+#if USES_XUNIT_3
+                return await IdeTheoryTestCaseRunner.RunAsync(SharedData, null!/*TODO*/, messageBus, constructorArguments, null! /*TODO: beforeAfterAttributes*/, aggregator, cancellationTokenSource).RunAsync();
+#else
                 return await new IdeTheoryTestCaseRunner(SharedData, VisualStudioInstanceKey, this, displayName, SkipReason, constructorArguments, diagnosticMessageSink, messageBus, aggregator, cancellationTokenSource).RunAsync();
+#endif
             }
         }
+#endif
     }
 }

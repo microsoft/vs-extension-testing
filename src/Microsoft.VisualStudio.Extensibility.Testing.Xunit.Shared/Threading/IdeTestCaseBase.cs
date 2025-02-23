@@ -33,6 +33,7 @@ namespace Xunit.Threading
             string uniqueID,
             bool @explicit,
             VisualStudioInstanceKey visualStudioInstanceKey,
+            bool includeRootSuffixInDisplayName,
             string? skipReason = null,
             Type? skipType = null,
             string? skipUnless = null,
@@ -42,7 +43,7 @@ namespace Xunit.Threading
             string? sourceFilePath = null,
             int? sourceLineNumber = null,
             int? timeout = null)
-            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+            : base(testMethod, AdjustDisplayName(testCaseDisplayName, visualStudioInstanceKey, includeRootSuffixInDisplayName), AdjustUniqueID(uniqueID, visualStudioInstanceKey), @explicit, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
         {
             SharedData = WpfTestSharedData.Instance;
             VisualStudioInstanceKey = visualStudioInstanceKey;
@@ -84,30 +85,44 @@ namespace Xunit.Threading
             private set;
         }
 
+#if !USES_XUNIT_3
         protected virtual bool IncludeRootSuffixInDisplayName => false;
 
         protected override string GetDisplayName(IAttributeInfo factAttribute, string displayName)
         {
             var baseName = base.GetDisplayName(factAttribute, displayName);
-            if (!IncludeRootSuffixInDisplayName || string.IsNullOrEmpty(VisualStudioInstanceKey.RootSuffix))
+            return AdjustDisplayName(baseName, VisualStudioInstanceKey, IncludeRootSuffixInDisplayName);
+        }
+#endif
+
+        private static string AdjustDisplayName(string baseName, VisualStudioInstanceKey visualStudioInstanceKey, bool includeRootSuffixInDisplayName)
+        {
+            if (!includeRootSuffixInDisplayName || string.IsNullOrEmpty(visualStudioInstanceKey.RootSuffix))
             {
-                return $"{baseName} ({VisualStudioInstanceKey.Version})";
+                return $"{baseName} ({visualStudioInstanceKey.Version})";
             }
             else
             {
-                return $"{baseName} ({VisualStudioInstanceKey.Version}, {VisualStudioInstanceKey.RootSuffix})";
+                return $"{baseName} ({visualStudioInstanceKey.Version}, {visualStudioInstanceKey.RootSuffix})";
             }
         }
 
+#if !USES_XUNIT_3
         protected override string GetUniqueID()
         {
-            if (string.IsNullOrEmpty(VisualStudioInstanceKey.RootSuffix))
+            return AdjustUniqueID(base.GetUniqueID(), VisualStudioInstanceKey);
+        }
+#endif
+
+        private static string AdjustUniqueID(string baseUniqueID, VisualStudioInstanceKey visualStudioInstanceKey)
+        {
+            if (string.IsNullOrEmpty(visualStudioInstanceKey.RootSuffix))
             {
-                return $"{base.GetUniqueID()}_{VisualStudioInstanceKey.Version}";
+                return $"{baseUniqueID}_{visualStudioInstanceKey.Version}";
             }
             else
             {
-                return $"{base.GetUniqueID()}_{VisualStudioInstanceKey.RootSuffix}_{VisualStudioInstanceKey.Version}";
+                return $"{baseUniqueID}_{visualStudioInstanceKey.RootSuffix}_{visualStudioInstanceKey.Version}";
             }
         }
 
