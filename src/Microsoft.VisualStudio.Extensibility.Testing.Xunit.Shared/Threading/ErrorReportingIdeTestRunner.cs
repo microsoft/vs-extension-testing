@@ -40,7 +40,9 @@ namespace Xunit.Threading
 #endif
         {
 #if USES_XUNIT_3
+#pragma warning disable CA1062 // Validate arguments of public methods
             var aggregator = ctxt.Aggregator;
+#pragma warning restore CA1062 // Validate arguments of public methods
 #endif
 
 #if !USES_XUNIT_3
@@ -50,13 +52,31 @@ namespace Xunit.Threading
             }
 #endif
 
+#pragma warning disable SA1001 // Commas should be spaced correctly
+#pragma warning disable SA1113 // Comma should be on the same line as previous parameter
+#pragma warning disable SA1115 // Parameter should follow comma
+#pragma warning disable SA1009 // Closing parenthesis should be spaced correctly
+#pragma warning disable SA1111 // Closing parenthesis should be on line of last parameter
             return aggregator.RunAsync(
                 () =>
                 {
-                    var tcs = new TaskCompletionSource<decimal>();
-                    tcs.SetException(new InvalidOperationException("Test execution was skipped due to a prior exception in the harness.", _exception));
-                    return tcs.Task;
-                });
+                    var exception = new InvalidOperationException("Test execution was skipped due to a prior exception in the harness.", _exception);
+
+#if USES_XUNIT_3
+                    return new ValueTask<TimeSpan>(Task.FromException<TimeSpan>(exception));
+#else
+                    return Task.FromException<decimal>(exception);
+#endif
+                }
+#if USES_XUNIT_3
+                , default
+#endif
+                );
+#pragma warning restore SA1111 // Closing parenthesis should be on line of last parameter
+#pragma warning restore SA1009 // Closing parenthesis should be spaced correctly
+#pragma warning restore SA1115 // Parameter should follow comma
+#pragma warning restore SA1113 // Comma should be on the same line as previous parameter
+#pragma warning restore SA1001 // Commas should be spaced correctly
         }
     }
 }
