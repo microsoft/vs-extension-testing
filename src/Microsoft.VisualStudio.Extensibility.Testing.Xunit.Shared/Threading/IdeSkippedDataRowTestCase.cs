@@ -4,14 +4,23 @@
 namespace Xunit.Threading
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
 #if !USES_XUNIT_3
     using Xunit.Abstractions;
 #endif
     using Xunit.Harness;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
-    public sealed class IdeSkippedDataRowTestCase : XunitSkippedDataRowTestCase
+    public sealed class IdeSkippedDataRowTestCase
+#if USES_XUNIT_3
+        : XunitTestCase
+#else
+        : XunitSkippedDataRowTestCase
+#endif
     {
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("Called by the deserializer; should only be called by deriving classes for deserialization purposes", error: true)]
@@ -19,11 +28,34 @@ namespace Xunit.Threading
         {
         }
 
+#if USES_XUNIT_3
+        public IdeSkippedDataRowTestCase(
+            IXunitTestMethod testMethod,
+            string testCaseDisplayName,
+            string uniqueID,
+            bool @explicit,
+            VisualStudioInstanceKey visualStudioInstanceKey,
+            string? skipReason = null,
+            Type? skipType = null,
+            string? skipUnless = null,
+            string? skipWhen = null,
+            Dictionary<string, HashSet<string>>? traits = null,
+            object?[]? testMethodArguments = null,
+            string? sourceFilePath = null,
+            int? sourceLineNumber = null,
+            int? timeout = null)
+            : base(testMethod, $"{testCaseDisplayName} ({visualStudioInstanceKey.Version})", $"{uniqueID}_{visualStudioInstanceKey.Version}", @explicit, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+        {
+        }
+#else
         public IdeSkippedDataRowTestCase(IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, TestMethodDisplayOptions defaultMethodDisplayOptions, ITestMethod testMethod, VisualStudioInstanceKey visualStudioInstanceKey, string skipReason, object?[]? testMethodArguments = null)
             : base(diagnosticMessageSink, defaultMethodDisplay, defaultMethodDisplayOptions, testMethod, skipReason, testMethodArguments)
         {
             VisualStudioInstanceKey = visualStudioInstanceKey;
         }
+#endif
+
+#if !USES_XUNIT_3
 
         public VisualStudioInstanceKey VisualStudioInstanceKey
         {
@@ -63,5 +95,6 @@ namespace Xunit.Threading
             VisualStudioInstanceKey = VisualStudioInstanceKey.DeserializeFromString(data.GetValue<string>(nameof(VisualStudioInstanceKey)));
             base.Deserialize(data);
         }
+#endif
     }
 }

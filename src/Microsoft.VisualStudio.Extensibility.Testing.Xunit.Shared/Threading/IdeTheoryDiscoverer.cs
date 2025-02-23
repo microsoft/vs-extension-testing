@@ -3,10 +3,15 @@
 
 namespace Xunit.Threading
 {
+    using System;
     using System.Collections.Generic;
+    using System.Data;
     using System.Threading.Tasks;
 #if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
+#if USES_XUNIT_3
+    using Xunit.Internal;
 #endif
     using Xunit.Sdk;
 #if USES_XUNIT_3
@@ -53,7 +58,25 @@ namespace Xunit.Threading
             var testCases = new List<IXunitTestCase>();
             foreach (var supportedInstance in IdeFactDiscoverer.GetSupportedInstances(testMethod, theoryAttribute))
             {
+#if USES_XUNIT_3
+                var details = TestIntrospectionHelper.GetTestCaseDetailsForTheoryDataRow(discoveryOptions, testMethod, theoryAttribute, dataRow, testMethodArguments);
+                var traits = TestIntrospectionHelper.GetTraits(testMethod, dataRow);
+                testCases.Add(new IdeTestCase(
+                    details.ResolvedTestMethod,
+                    details.TestCaseDisplayName,
+                    details.UniqueID,
+                    details.Explicit,
+                    supportedInstance,
+                    details.SkipReason,
+                    details.SkipType,
+                    details.SkipUnless,
+                    details.SkipWhen,
+                    traits,
+                    testMethodArguments,
+                    timeout: details.Timeout));
+#else
                 testCases.Add(new IdeTestCase(DiagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance, dataRow));
+#endif
                 if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, DiagnosticMessageSink, supportedInstance) is { } instanceTestCase)
                 {
                     testCases.Add(instanceTestCase);
@@ -76,7 +99,24 @@ namespace Xunit.Threading
             var testCases = new List<IXunitTestCase>();
             foreach (var supportedInstance in IdeFactDiscoverer.GetSupportedInstances(testMethod, theoryAttribute))
             {
+#if USES_XUNIT_3
+                var details = TestIntrospectionHelper.GetTestCaseDetails(discoveryOptions, testMethod, theoryAttribute);
+
+                testCases.Add(new IdeTheoryTestCase(
+                    details.ResolvedTestMethod,
+                    details.TestCaseDisplayName,
+                    details.UniqueID,
+                    details.Explicit,
+                    supportedInstance,
+                    details.SkipReason,
+                    details.SkipType,
+                    details.SkipUnless,
+                    details.SkipWhen,
+                    testMethod.Traits.ToReadWrite(StringComparer.OrdinalIgnoreCase),
+                    timeout: details.Timeout));
+#else
                 testCases.Add(new IdeTheoryTestCase(DiagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance));
+#endif
                 if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, DiagnosticMessageSink, supportedInstance) is { } instanceTestCase)
                 {
                     testCases.Add(instanceTestCase);

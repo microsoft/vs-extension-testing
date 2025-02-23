@@ -13,6 +13,9 @@ namespace Xunit.Threading
     using Xunit.Abstractions;
 #endif
     using Xunit.Harness;
+#if USES_XUNIT_3
+    using Xunit.Internal;
+#endif
     using Xunit.Sdk;
 #if USES_XUNIT_3
     using Xunit.v3;
@@ -54,13 +57,31 @@ namespace Xunit.Threading
 
             var testCases = new List<IXunitTestCase>();
 
+#if USES_XUNIT_3
+            var details = TestIntrospectionHelper.GetTestCaseDetails(discoveryOptions, testMethod, factAttribute);
+#endif
             if (!testMethod.Method.GetParameters().Any())
             {
                 if (!testMethod.Method.IsGenericMethodDefinition)
                 {
                     foreach (var supportedInstance in GetSupportedInstances(testMethod, factAttribute))
                     {
+#if USES_XUNIT_3
+                        testCases.Add(new IdeTestCase(
+                            details.ResolvedTestMethod,
+                            details.TestCaseDisplayName,
+                            details.UniqueID,
+                            details.Explicit,
+                            supportedInstance,
+                            details.SkipReason,
+                            details.SkipType,
+                            details.SkipUnless,
+                            details.SkipWhen,
+                            testMethod.Traits.ToReadWrite(StringComparer.OrdinalIgnoreCase),
+                            timeout: details.Timeout));
+#else
                         testCases.Add(new IdeTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance));
+#endif
                         if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, _diagnosticMessageSink, supportedInstance) is { } instanceTestCase)
                         {
                             testCases.Add(instanceTestCase);
@@ -69,12 +90,20 @@ namespace Xunit.Threading
                 }
                 else
                 {
+#if USES_XUNIT_3
+                    testCases.Add(new ExecutionErrorTestCase(testMethod, details.TestCaseDisplayName, details.UniqueID, "[IdeFact] methods are not allowed to be generic."));
+#else
                     testCases.Add(new ExecutionErrorTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, "[IdeFact] methods are not allowed to be generic."));
+#endif
                 }
             }
             else
             {
+#if USES_XUNIT_3
+                testCases.Add(new ExecutionErrorTestCase(testMethod, details.TestCaseDisplayName, details.UniqueID, "[IdeFact] methods are not allowed to have parameters. Did you mean to use [IdeTheory]?"));
+#else
                 testCases.Add(new ExecutionErrorTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, "[IdeFact] methods are not allowed to have parameters. Did you mean to use [IdeTheory]?"));
+#endif
             }
 
 #if USES_XUNIT_3
