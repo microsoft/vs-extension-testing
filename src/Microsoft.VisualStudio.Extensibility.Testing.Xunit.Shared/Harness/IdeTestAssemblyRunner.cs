@@ -12,10 +12,16 @@ namespace Xunit.Harness
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Threading;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Sdk;
     using Xunit.Threading;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
+#if !USES_XUNIT_3 // TODO - figure out where the "lost" logic here should go and refactor accordingly.
     internal class IdeTestAssemblyRunner : XunitTestAssemblyRunner
     {
         /// <summary>
@@ -585,4 +591,5 @@ namespace Xunit.Harness
             }
         }
     }
+#endif
 }

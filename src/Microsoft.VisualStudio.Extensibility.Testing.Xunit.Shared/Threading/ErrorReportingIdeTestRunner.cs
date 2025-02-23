@@ -8,8 +8,13 @@ namespace Xunit.Threading
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public class ErrorReportingIdeTestRunner : XunitTestRunner
     {
@@ -23,10 +28,12 @@ namespace Xunit.Threading
 
         protected override Task<decimal> InvokeTestMethodAsync(ExceptionAggregator aggregator)
         {
+#if !USES_XUNIT_3
             if (aggregator is null)
             {
                 throw new ArgumentNullException(nameof(aggregator));
             }
+#endif
 
             return aggregator.RunAsync(
                 () =>

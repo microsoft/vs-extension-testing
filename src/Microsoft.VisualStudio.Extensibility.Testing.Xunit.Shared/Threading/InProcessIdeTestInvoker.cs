@@ -8,22 +8,49 @@ namespace Xunit.Threading
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public class InProcessIdeTestInvoker : XunitTestInvoker
     {
         private readonly Stack<BeforeAfterTestAttribute> _beforeAfterAttributesRun = new();
         private readonly IReadOnlyList<BeforeAfterTestAttribute> _beforeAfterAttributes;
 
-        public InProcessIdeTestInvoker(ITest test, IMessageBus messageBus, Type testClass, object[] constructorArguments, MethodInfo testMethod, object[] testMethodArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        public InProcessIdeTestInvoker(
+#if USES_XUNIT_3
+            IXunitTest test,
+#else
+            ITest test,
+#endif
+            IMessageBus messageBus,
+            Type testClass,
+            object[] constructorArguments,
+            MethodInfo testMethod,
+            object[] testMethodArguments,
+            IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes,
+            ExceptionAggregator aggregator,
+            CancellationTokenSource cancellationTokenSource)
             : base(test, messageBus, testClass, constructorArguments, testMethod, testMethodArguments, beforeAfterAttributes, aggregator, cancellationTokenSource)
         {
             _beforeAfterAttributes = beforeAfterAttributes;
         }
 
-        public new Task<decimal> RunAsync()
+        public
+#if !USES_XUNIT_3
+            new
+#endif
+#if USES_XUNIT_3
+            ValueTask
+#else
+            Task<decimal>
+#endif
+            RunAsync()
         {
             return Aggregator.RunAsync(async delegate
             {
@@ -75,12 +102,18 @@ namespace Xunit.Threading
                     {
                         Aggregator.Run(delegate
                         {
+#if USES_XUNIT_3
+                            Test.DisposeTestClass(testClassInstance, MessageBus, CancellationTokenSource);
+#else
                             Test.DisposeTestClass(testClassInstance, MessageBus, Timer, CancellationTokenSource);
+#endif
                         });
                     }
                 }
 
+#if !USES_XUNIT_3
                 return Timer.Total;
+#endif
             });
         }
 
@@ -96,12 +129,88 @@ namespace Xunit.Threading
             }
         }
 
-        protected override Task BeforeTestMethodInvokedAsync()
+        private static BeforeTestStarting CreateBeforeTestStarting(ITest test, string attributeName)
+        {
+#if USES_XUNIT_3
+            return new BeforeTestStarting()
+            {
+                AssemblyUniqueID = test.TestCase.TestCollection.TestAssembly.UniqueID,
+                AttributeName = attributeName,
+                TestCaseUniqueID = test.TestCase.UniqueID,
+                TestClassUniqueID = test.TestCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = test.TestCase.TestCollection.UniqueID,
+                TestMethodUniqueID = test.TestCase.TestMethod?.UniqueID,
+                TestUniqueID = test.UniqueID,
+            };
+#else
+            return new BeforeTestStarting(test, attributeName);
+#endif
+        }
+
+        private static AfterTestStarting CreateAfterTestStarting(ITest test, string attributeName)
+        {
+#if USES_XUNIT_3
+            return new AfterTestStarting()
+            {
+                AssemblyUniqueID = test.TestCase.TestCollection.TestAssembly.UniqueID,
+                AttributeName = attributeName,
+                TestCaseUniqueID = test.TestCase.UniqueID,
+                TestClassUniqueID = test.TestCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = test.TestCase.TestCollection.UniqueID,
+                TestMethodUniqueID = test.TestCase.TestMethod?.UniqueID,
+                TestUniqueID = test.UniqueID,
+            };
+#else
+            return new AfterTestStarting(test, attributeName);
+#endif
+        }
+
+        private static BeforeTestFinished CreateBeforeTestFinished(ITest test, string attributeName)
+        {
+#if USES_XUNIT_3
+            return new BeforeTestFinished()
+            {
+                AssemblyUniqueID = test.TestCase.TestCollection.TestAssembly.UniqueID,
+                AttributeName = attributeName,
+                TestCaseUniqueID = test.TestCase.UniqueID,
+                TestClassUniqueID = test.TestCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = test.TestCase.TestCollection.UniqueID,
+                TestMethodUniqueID = test.TestCase.TestMethod?.UniqueID,
+                TestUniqueID = test.UniqueID,
+            };
+#else
+            return new BeforeTestFinished(test, attributeName);
+#endif
+        }
+
+        private static AfterTestFinished CreateAfterTestFinished(ITest test, string attributeName)
+        {
+#if USES_XUNIT_3
+            return new AfterTestFinished()
+            {
+                AssemblyUniqueID = test.TestCase.TestCollection.TestAssembly.UniqueID,
+                AttributeName = attributeName,
+                TestCaseUniqueID = test.TestCase.UniqueID,
+                TestClassUniqueID = test.TestCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = test.TestCase.TestCollection.UniqueID,
+                TestMethodUniqueID = test.TestCase.TestMethod?.UniqueID,
+                TestUniqueID = test.UniqueID,
+            };
+#else
+            return new AfterTestFinished(test, attributeName);
+#endif
+        }
+
+        protected
+#if !USES_XUNIT_3
+            override
+#endif
+            Task BeforeTestMethodInvokedAsync()
         {
             foreach (var beforeAfterAttribute in _beforeAfterAttributes)
             {
                 var attributeName = beforeAfterAttribute.GetType().Name;
-                if (!MessageBus.QueueMessage(new BeforeTestStarting(Test, attributeName)))
+                if (!MessageBus.QueueMessage(CreateBeforeTestStarting(Test, attributeName)))
                 {
                     CancellationTokenSource.Cancel();
                 }
@@ -109,7 +218,11 @@ namespace Xunit.Threading
                 {
                     try
                     {
-                        Timer.Aggregate(() => beforeAfterAttribute.Before(TestMethod));
+#if USES_XUNIT_3
+                        beforeAfterAttribute.Before(TestMethod, Test);
+#else
+                        beforeAfterAttribute.Before(TestMethod);
+#endif
                         _beforeAfterAttributesRun.Push(beforeAfterAttribute);
                     }
                     catch (Exception ex) when (DataCollectionService.LogAndCatch(ex))
@@ -119,7 +232,7 @@ namespace Xunit.Threading
                     }
                     finally
                     {
-                        if (!MessageBus.QueueMessage(new BeforeTestFinished(Test, attributeName)))
+                        if (!MessageBus.QueueMessage(CreateBeforeTestFinished(Test, attributeName)))
                         {
                             CancellationTokenSource.Cancel();
                         }
@@ -141,7 +254,17 @@ namespace Xunit.Threading
 #endif
         }
 
-        protected override async Task<decimal> InvokeTestMethodAsync(object testClassInstance)
+        protected
+#if !USES_XUNIT_3
+            override
+#endif
+            async
+#if USES_XUNIT_3
+            Task
+#else
+            Task<decimal>
+#endif
+            InvokeTestMethodAsync(object testClassInstance)
         {
             var oldSyncContext = SynchronizationContext.Current;
 
@@ -150,8 +273,13 @@ namespace Xunit.Threading
                 var asyncSyncContext = new AsyncTestSyncContext(oldSyncContext);
                 SynchronizationContext.SetSynchronizationContext(asyncSyncContext);
 
+#pragma warning disable SA1114 // Parameter list should follow declaration
+#pragma warning disable SA1111 // Closing parenthesis should be on line of last parameter
+#pragma warning disable SA1009 // Closing parenthesis should be spaced correctly
                 await Aggregator.RunAsync(
-                    () => Timer.AggregateAsync(
+#if !USES_XUNIT_3
+                    async () => await Timer.AggregateAsync(
+#endif
                         async () =>
                         {
                             var parameterCount = TestMethod.GetParameters().Length;
@@ -192,14 +320,23 @@ namespace Xunit.Threading
                                     }
                                 }
                             }
-                        }));
+                        }
+#if !USES_XUNIT_3
+                    )
+#endif
+                    );
+#pragma warning restore SA1009 // Closing parenthesis should be spaced correctly
+#pragma warning restore SA1111 // Closing parenthesis should be on line of last parameter
+#pragma warning restore SA1114 // Parameter list should follow declaration
             }
             finally
             {
                 SynchronizationContext.SetSynchronizationContext(oldSyncContext);
             }
 
+#if !USES_XUNIT_3
             return Timer.Total;
+#endif
         }
 
         protected override object CallTestMethod(object testClassInstance)
@@ -214,32 +351,49 @@ namespace Xunit.Threading
             }
         }
 
-        protected override Task AfterTestMethodInvokedAsync()
+        protected
+#if !USES_XUNIT_3
+            override
+#endif
+            Task AfterTestMethodInvokedAsync()
         {
             foreach (var beforeAfterAttribute in _beforeAfterAttributesRun)
             {
                 var attributeName = beforeAfterAttribute.GetType().Name;
-                if (!MessageBus.QueueMessage(new AfterTestStarting(Test, attributeName)))
+                if (!MessageBus.QueueMessage(CreateAfterTestStarting(Test, attributeName)))
                 {
                     CancellationTokenSource.Cancel();
                 }
 
                 Aggregator.Run(() =>
                 {
+#if !USES_XUNIT_3
+#pragma warning disable SA1009 // Closing parenthesis should be spaced correctly
+#pragma warning disable SA1111 // Closing parenthesis should be on line of last parameter
                     Timer.Aggregate(() =>
+#endif
                     {
                         try
                         {
+#if USES_XUNIT_3
+                            beforeAfterAttribute.After(TestMethod, Test);
+#else
                             beforeAfterAttribute.After(TestMethod);
+#endif
                         }
                         catch (Exception ex) when (DataCollectionService.LogAndPropagate(ex))
                         {
                             throw ExceptionUtilities.Unreachable;
                         }
-                    });
+                    }
+#if !USES_XUNIT_3
+                    );
+#pragma warning restore SA1111 // Closing parenthesis should be on line of last parameter
+#pragma warning restore SA1009 // Closing parenthesis should be spaced correctly
+#endif
                 });
 
-                if (!MessageBus.QueueMessage(new AfterTestFinished(Test, attributeName)))
+                if (!MessageBus.QueueMessage(CreateAfterTestFinished(Test, attributeName)))
                 {
                     CancellationTokenSource.Cancel();
                 }

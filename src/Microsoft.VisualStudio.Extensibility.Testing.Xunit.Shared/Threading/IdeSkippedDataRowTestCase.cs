@@ -5,7 +5,9 @@ namespace Xunit.Threading
 {
     using System;
     using System.ComponentModel;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
 

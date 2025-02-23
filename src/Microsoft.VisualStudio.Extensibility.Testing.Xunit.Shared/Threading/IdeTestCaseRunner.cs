@@ -8,9 +8,15 @@ namespace Xunit.Threading
     using System.Diagnostics;
     using System.Reflection;
     using System.Threading;
+    using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public sealed class IdeTestCaseRunner : XunitTestCaseRunner
     {
@@ -41,6 +47,13 @@ namespace Xunit.Threading
             get;
         }
 
+#if USES_XUNIT_3
+        protected override ValueTask<RunSummary> RunTest(XunitTestCaseRunnerContext ctxt, IXunitTest test)
+        {
+            // TODO
+            return base.RunTest(ctxt, test);
+        }
+#else
         protected override XunitTestRunner CreateTestRunner(ITest test, IMessageBus messageBus, Type testClass, object?[] constructorArguments, MethodInfo testMethod, object?[]? testMethodArguments, string skipReason, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
             if (Process.GetCurrentProcess().ProcessName == "devenv")
@@ -58,5 +71,6 @@ namespace Xunit.Threading
                 throw new NotSupportedException($"{nameof(IdeFactAttribute)} can only be used with the {nameof(IdeTestFramework)} test framework");
             }
         }
+#endif
     }
 }

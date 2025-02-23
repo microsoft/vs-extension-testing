@@ -10,10 +10,15 @@ namespace Xunit.Threading
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Threading;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.InProcess;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public class InProcessIdeTestRunner : XunitTestRunner
     {

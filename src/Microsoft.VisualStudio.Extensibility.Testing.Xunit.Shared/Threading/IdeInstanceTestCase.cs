@@ -9,9 +9,14 @@ namespace Xunit.Threading
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public sealed class IdeInstanceTestCase : IdeTestCaseBase
     {

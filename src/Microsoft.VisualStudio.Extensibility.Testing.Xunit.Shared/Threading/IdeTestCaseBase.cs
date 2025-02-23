@@ -4,11 +4,17 @@
 namespace Xunit.Threading
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using Microsoft.Win32;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public abstract class IdeTestCaseBase : XunitTestCase
     {
@@ -20,6 +26,33 @@ namespace Xunit.Threading
         {
         }
 
+#if USES_XUNIT_3
+        protected IdeTestCaseBase(
+            IXunitTestMethod testMethod,
+            string testCaseDisplayName,
+            string uniqueID,
+            bool @explicit,
+            VisualStudioInstanceKey visualStudioInstanceKey,
+            string? skipReason = null,
+            Type? skipType = null,
+            string? skipUnless = null,
+            string? skipWhen = null,
+            Dictionary<string, HashSet<string>>? traits = null,
+            object?[]? testMethodArguments = null,
+            string? sourceFilePath = null,
+            int? sourceLineNumber = null,
+            int? timeout = null)
+            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+        {
+            SharedData = WpfTestSharedData.Instance;
+            VisualStudioInstanceKey = visualStudioInstanceKey;
+
+            if (!IsInstalled(visualStudioInstanceKey.Version))
+            {
+                SkipReason = $"{visualStudioInstanceKey.Version} is not installed";
+            }
+        }
+#else
         protected IdeTestCaseBase(IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, TestMethodDisplayOptions defaultMethodDisplayOptions, ITestMethod testMethod, VisualStudioInstanceKey visualStudioInstanceKey, object?[]? testMethodArguments = null)
             : base(diagnosticMessageSink, defaultMethodDisplay, defaultMethodDisplayOptions, testMethod, testMethodArguments)
         {
@@ -31,6 +64,7 @@ namespace Xunit.Threading
                 SkipReason = $"{visualStudioInstanceKey.Version} is not installed";
             }
         }
+#endif
 
         public VisualStudioInstanceKey VisualStudioInstanceKey
         {
@@ -38,9 +72,11 @@ namespace Xunit.Threading
             private set;
         }
 
+#if !USES_XUNIT_3
         public new TestMethodDisplay DefaultMethodDisplay => base.DefaultMethodDisplay;
 
         public new TestMethodDisplayOptions DefaultMethodDisplayOptions => base.DefaultMethodDisplayOptions;
+#endif
 
         public WpfTestSharedData SharedData
         {
@@ -75,7 +111,12 @@ namespace Xunit.Threading
             }
         }
 
-        public override void Serialize(IXunitSerializationInfo data)
+#if USES_XUNIT_3
+        protected
+#else
+        public
+#endif
+        override void Serialize(IXunitSerializationInfo data)
         {
             if (data is null)
             {
@@ -87,14 +128,19 @@ namespace Xunit.Threading
             data.AddValue(nameof(SkipReason), SkipReason);
         }
 
-        public override void Deserialize(IXunitSerializationInfo data)
+#if USES_XUNIT_3
+        protected
+#else
+        public
+#endif
+        override void Deserialize(IXunitSerializationInfo data)
         {
             if (data is null)
             {
                 throw new ArgumentNullException(nameof(data));
             }
 
-            VisualStudioInstanceKey = VisualStudioInstanceKey.DeserializeFromString(data.GetValue<string>(nameof(VisualStudioInstanceKey)));
+            VisualStudioInstanceKey = VisualStudioInstanceKey.DeserializeFromString(data.GetValue<string>(nameof(VisualStudioInstanceKey))!);
             base.Deserialize(data);
             SkipReason = data.GetValue<string>(nameof(SkipReason));
             SharedData = WpfTestSharedData.Instance;

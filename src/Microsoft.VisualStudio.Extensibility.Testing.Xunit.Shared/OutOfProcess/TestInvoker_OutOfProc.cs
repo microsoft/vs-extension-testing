@@ -8,10 +8,15 @@ namespace Xunit.OutOfProcess
     using System.Linq;
     using System.Reflection;
     using System.Runtime.Remoting;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.InProcess;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     internal class TestInvoker_OutOfProc : OutOfProcComponent
     {
@@ -80,12 +85,30 @@ namespace Xunit.OutOfProcess
                 _testOutputHelper = testOutputHelper;
             }
 
+#if USES_XUNIT_3
+            public string Output => _testOutputHelper.Output;
+
+            public void Write(string message)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Write(string format, params object[] args)
+            {
+                throw new NotImplementedException();
+            }
+#endif
+
             public void WriteLine(string message)
             {
                 _testOutputHelper.WriteLine(message);
             }
 
+#if USES_XUNIT_3
+            public void WriteLine(string format, params object[] args)
+#else
             public void WriteLine(string format, params object?[] args)
+#endif
             {
                 _testOutputHelper.WriteLine(format, args);
             }
