@@ -30,12 +30,14 @@ namespace Xunit.Threading
 
     public class IdeFactDiscoverer : IXunitTestCaseDiscoverer
     {
+#if !USES_XUNIT_3
         private readonly IMessageSink _diagnosticMessageSink;
 
         public IdeFactDiscoverer(IMessageSink diagnosticMessageSink)
         {
             _diagnosticMessageSink = diagnosticMessageSink;
         }
+#endif
 
         public
 #if USES_XUNIT_3
@@ -84,11 +86,19 @@ namespace Xunit.Threading
 
         internal static ITestMethod CreateVisualStudioTestMethod(VisualStudioInstanceKey supportedInstance)
         {
+#if USES_XUNIT_3
+            var testAssembly = new XunitTestAssembly(typeof(Instances).Assembly);
+            var testCollection = new XunitTestCollection(testAssembly, collectionDefinition: null, disableParallelization: true, nameof(Instances));
+            var testClass = new XunitTestClass(typeof(Instances), testCollection);
+            var testMethod = testClass.Methods.Single(method => method.Name == nameof(Instances.VisualStudio));
+            return new XunitTestMethod(testClass, testMethod, Array.Empty<object?>());
+#else
             var testAssembly = new TestAssembly(new ReflectionAssemblyInfo(typeof(Instances).Assembly));
             var testCollection = new TestCollection(testAssembly, collectionDefinition: null, nameof(Instances));
             var testClass = new TestClass(testCollection, new ReflectionTypeInfo(typeof(Instances)));
             var testMethod = testClass.Class.GetMethods(false).Single(method => method.Name == nameof(Instances.VisualStudio));
             return new TestMethod(testClass, testMethod);
+#endif
         }
 
         internal static IEnumerable<VisualStudioInstanceKey> GetSupportedInstances(ITestMethodType testMethod, IFactAttributeType factAttribute)
