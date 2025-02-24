@@ -21,7 +21,6 @@ namespace Xunit.Harness
     using Xunit.v3;
 #endif
 
-#if !USES_XUNIT_3 // TODO - figure out where the "lost" logic here should go and refactor accordingly.
     internal class IdeTestAssemblyRunner : XunitTestAssemblyRunner
     {
         /// <summary>
@@ -31,11 +30,15 @@ namespace Xunit.Harness
 
         private HashSet<VisualStudioInstanceKey>? _ideInstancesInTests;
 
+#if !USES_XUNIT_3
         public IdeTestAssemblyRunner(ITestAssembly testAssembly, IEnumerable<IXunitTestCase> testCases, IMessageSink diagnosticMessageSink, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
             : base(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions)
         {
         }
+#endif
 
+        // TODO: !!
+        // Note: test collection ordering is now part of the XunitTestAssembly rather than the runner.
         protected override async Task AfterTestAssemblyStartingAsync()
         {
             await base.AfterTestAssemblyStartingAsync().ConfigureAwait(false);
@@ -591,5 +594,4 @@ namespace Xunit.Harness
             }
         }
     }
-#endif
 }
