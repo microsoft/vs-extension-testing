@@ -41,7 +41,7 @@ namespace Xunit.Harness
             try
             {
 #if USES_XUNIT_3
-                await XunitTestAssemblyRunner.Instance.Run(TestAssembly, testCases, executionMessageSink, executionOptions);
+                await new IdeTestAssemblyRunner().Run(TestAssembly, testCases, executionMessageSink, executionOptions);
 #else
                 using (var assemblyRunner = new IdeTestAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSink, executionOptions))
                 {
@@ -55,44 +55,25 @@ namespace Xunit.Harness
         }
 
 #if USES_XUNIT_3
-        private sealed class XUnit3TestAssembly : IXunitTestAssembly
+        private sealed class XUnit3TestAssembly : XunitTestAssembly, IXunitTestAssembly
         {
             public XUnit3TestAssembly(Assembly assembly)
+                : base(assembly, configFileName: null, assembly.GetName().Version)
             {
-                Assembly = assembly;
             }
 
-            public Assembly Assembly { get; }
+            ITestCollectionOrderer? IXunitTestAssembly.TestCollectionOrderer
+            {
+                get
+                {
+                    var fromBase = base.TestCollectionOrderer ?? DefaultTestCollectionOrderer.Instance;
+                    return new TestCollectionOrdererWrapper(); // TODO: Copy TestCollectionOrdererWrapper
+                }
+            }
 
-            public IReadOnlyCollection<Type> AssemblyFixtureTypes => Array.Empty<Type>();
+            // Unnecessary cast suggestion here is likely a false positive?
+            public ITestCollectionOrderer? TestCollectionOrder => ((IXunitTestAssembly)this).TestCollectionOrderer;
 
-            public IReadOnlyCollection<IBeforeAfterTestAttribute> BeforeAfterTestAttributes => Array.Empty<IBeforeAfterTestAttribute>();
-
-            public ICollectionBehaviorAttribute? CollectionBehavior => null;
-
-#pragma warning disable SA1316 // Tuple element names should use correct casing
-            public IReadOnlyDictionary<string, (Type Type, CollectionDefinitionAttribute Attribute)> CollectionDefinitions => new Dictionary<string, (Type Type, CollectionDefinitionAttribute Attribute)>();
-#pragma warning restore SA1316 // Tuple element names should use correct casing
-
-            public string TargetFramework => throw new NotImplementedException();
-
-            public ITestCaseOrderer? TestCaseOrderer => null;
-
-            public ITestCollectionOrderer? TestCollectionOrderer => null;
-
-            public Version Version => throw new NotImplementedException();
-
-            public Guid ModuleVersionID => throw new NotImplementedException();
-
-            public string AssemblyName => throw new NotImplementedException();
-
-            public string AssemblyPath => throw new NotImplementedException();
-
-            public string? ConfigFilePath => throw new NotImplementedException();
-
-            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => throw new NotImplementedException();
-
-            public string UniqueID => throw new NotImplementedException();
         }
 #endif
     }

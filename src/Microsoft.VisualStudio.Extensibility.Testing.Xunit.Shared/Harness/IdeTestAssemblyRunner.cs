@@ -9,6 +9,7 @@ namespace Xunit.Harness
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Threading;
@@ -37,21 +38,41 @@ namespace Xunit.Harness
         }
 #endif
 
-        // TODO: !!
-        // Note: test collection ordering is now part of the XunitTestAssembly rather than the runner.
+#if USES_XUNIT_3
+        protected override ValueTask<bool> OnTestAssemblyStarting(XunitTestAssemblyRunnerContext ctxt)
+        {
+            _ideInstancesInTests = new HashSet<VisualStudioInstanceKey>();
+            return base.OnTestAssemblyStarting(ctxt);
+        }
+#else
         protected override async Task AfterTestAssemblyStartingAsync()
         {
             await base.AfterTestAssemblyStartingAsync().ConfigureAwait(false);
+
+            // Note: test collection ordering is now part of the XunitTestAssembly rather than the runner.
+            // The logic around it for xUnit 3 is in our own Xunit3TestAssembly.
             TestCollectionOrderer = new TestCollectionOrdererWrapper(TestCollectionOrderer);
             _ideInstancesInTests = new HashSet<VisualStudioInstanceKey>();
         }
+#endif
 
+#if USES_XUNIT_3
+        protected override ValueTask<bool> OnTestAssemblyFinished(XunitTestAssemblyRunnerContext ctxt, RunSummary summary)
+        {
+            _ideInstancesInTests = null;
+
+            // TODO: Is it necessary to reset back to the original orderer?
+            return base.OnTestAssemblyFinished(ctxt, summary);
+        }
+#else
         protected override async Task BeforeTestAssemblyFinishedAsync()
         {
             _ideInstancesInTests = null;
+
             TestCollectionOrderer = ((TestCollectionOrdererWrapper)TestCollectionOrderer).Underlying;
             await base.BeforeTestAssemblyFinishedAsync();
         }
+#endif
 
         protected override async Task<RunSummary> RunTestCollectionAsync(IMessageBus messageBus, ITestCollection testCollection, IEnumerable<IXunitTestCase> testCases, CancellationTokenSource cancellationTokenSource)
         {
