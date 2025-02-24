@@ -37,7 +37,9 @@ namespace Xunit.Threading
 #endif
         {
 #if USES_XUNIT_3
+#pragma warning disable CA1062 // Validate arguments of public methods
             var test = ctxt.Test;
+#pragma warning restore CA1062 // Validate arguments of public methods
             var messageBus = ctxt.MessageBus;
             var testClass = ctxt.TestMethod.DeclaringType;
             var constructorArguments = ctxt.ConstructorArguments;

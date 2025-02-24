@@ -18,8 +18,12 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeTestCaseRunner : XunitTestCaseRunner
+    public sealed class IdeTestCaseRunner
+#if !USES_XUNIT_3
+        : XunitTestCaseRunner
+#endif
     {
+#if !USES_XUNIT_3
         public IdeTestCaseRunner(
             WpfTestSharedData sharedData,
             VisualStudioInstanceKey visualStudioInstanceKey,
@@ -46,12 +50,25 @@ namespace Xunit.Threading
         {
             get;
         }
+#endif
 
 #if USES_XUNIT_3
-        protected override ValueTask<RunSummary> RunTest(XunitTestCaseRunnerContext ctxt, IXunitTest test)
+        internal static async Task<RunSummary> RunAsync(WpfTestSharedData sharedData, IXunitTest test, IMessageBus messageBus, object[] constructorArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
-            // TODO
-            return base.RunTest(ctxt, test);
+            if (Process.GetCurrentProcess().ProcessName == "devenv")
+            {
+                // We are already running inside Visual Studio
+                // TODO: Verify version under test
+                return await new InProcessIdeTestRunner().Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+            }
+            else if (sharedData.Exception is not null)
+            {
+                return await new ErrorReportingIdeTestRunner(sharedData.Exception).Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+            }
+            else
+            {
+                throw new NotSupportedException($"{nameof(IdeFactAttribute)} can only be used with the {nameof(IdeTestFramework)} test framework");
+            }
         }
 #else
         protected override XunitTestRunner CreateTestRunner(ITest test, IMessageBus messageBus, Type testClass, object?[] constructorArguments, MethodInfo testMethod, object?[]? testMethodArguments, string skipReason, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)

@@ -35,11 +35,21 @@ namespace Xunit.InProcess
             var assembly = Assembly.LoadFrom(codeBase);
         }
 
-        public InProcessIdeTestAssemblyRunner CreateTestAssemblyRunner(ITestAssembly testAssembly, IXunitTestCase[] testCases, IMessageSink diagnosticMessageSink, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
+        public InProcessIdeTestAssemblyRunner CreateTestAssemblyRunner(
+#if USES_XUNIT_3
+            IXunitTestAssembly testAssembly,
+#else
+            ITestAssembly testAssembly,
+#endif
+            IXunitTestCase[] testCases,
+            IMessageSink diagnosticMessageSink,
+            IMessageSink executionMessageSink,
+            ITestFrameworkExecutionOptions executionOptions)
         {
             return new InProcessIdeTestAssemblyRunner(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions);
         }
 
+#if !USES_XUNIT_3 // potentially dead code, even for xUnit 2? - https://github.com/microsoft/vs-extension-testing/pull/177
         public Tuple<decimal, Exception> InvokeTest(
 #if USES_XUNIT_3
             IXunitTest test,
@@ -88,5 +98,6 @@ namespace Xunit.InProcess
 
             return Tuple.Create(result, aggregator.ToException());
         }
+#endif
     }
 }

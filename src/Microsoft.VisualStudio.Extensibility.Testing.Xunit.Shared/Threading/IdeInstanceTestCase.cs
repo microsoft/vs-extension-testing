@@ -7,6 +7,7 @@ namespace Xunit.Threading
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.ComponentModel;
+    using System.Data;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,6 +15,9 @@ namespace Xunit.Threading
     using Xunit.Abstractions;
 #endif
     using Xunit.Harness;
+#if USES_XUNIT_3
+    using Xunit.Internal;
+#endif
     using Xunit.Sdk;
 #if USES_XUNIT_3
     using Xunit.v3;
@@ -67,10 +71,34 @@ namespace Xunit.Threading
         protected override bool IncludeRootSuffixInDisplayName => true;
 #endif
 
-        public static IdeInstanceTestCase? TryCreateNewInstanceForFramework(ITestFrameworkDiscoveryOptions discoveryOptions, IMessageSink diagnosticMessageSink, VisualStudioInstanceKey visualStudioInstanceKey)
+        public static IdeInstanceTestCase? TryCreateNewInstanceForFramework(
+            ITestFrameworkDiscoveryOptions discoveryOptions,
+#if !USES_XUNIT_3
+            IMessageSink diagnosticMessageSink,
+#endif
+            VisualStudioInstanceKey visualStudioInstanceKey)
         {
             var lazyInstances = _instances.GetValue(discoveryOptions, static _ => new StrongBox<ImmutableDictionary<VisualStudioInstanceKey, IdeInstanceTestCase>>(ImmutableDictionary<VisualStudioInstanceKey, IdeInstanceTestCase>.Empty));
-            var candidateTestCase = new IdeInstanceTestCase(diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), IdeFactDiscoverer.CreateVisualStudioTestMethod(visualStudioInstanceKey), visualStudioInstanceKey);
+            var testMethod = IdeFactDiscoverer.CreateVisualStudioTestMethod(visualStudioInstanceKey);
+#if USES_XUNIT_3
+            var details = TestIntrospectionHelper.GetTestCaseDetails(discoveryOptions, testMethod, new FactAttribute());
+            var traits = TestIntrospectionHelper.GetTraits(testMethod, null);
+
+            var candidateTestCase = new IdeInstanceTestCase(
+                details.ResolvedTestMethod,
+                details.TestCaseDisplayName,
+                details.UniqueID,
+                details.Explicit,
+                visualStudioInstanceKey,
+                details.SkipReason,
+                details.SkipType,
+                details.SkipUnless,
+                details.SkipWhen,
+                testMethod.Traits.ToReadWrite(StringComparer.OrdinalIgnoreCase),
+                timeout: details.Timeout);
+#else
+            var candidateTestCase = new IdeInstanceTestCase(diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, visualStudioInstanceKey);
+#endif
             var testCase = ImmutableInterlocked.GetOrAdd(ref lazyInstances.Value, visualStudioInstanceKey, candidateTestCase);
             if (testCase != candidateTestCase)
             {

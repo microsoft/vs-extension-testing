@@ -77,7 +77,11 @@ namespace Xunit.Threading
 #else
                 testCases.Add(new IdeTestCase(DiagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance, dataRow));
 #endif
+#if USES_XUNIT_3
+                if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, supportedInstance) is { } instanceTestCase)
+#else
                 if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, DiagnosticMessageSink, supportedInstance) is { } instanceTestCase)
+#endif
                 {
                     testCases.Add(instanceTestCase);
                 }
@@ -102,6 +106,7 @@ namespace Xunit.Threading
 #if USES_XUNIT_3
                 var details = TestIntrospectionHelper.GetTestCaseDetails(discoveryOptions, testMethod, theoryAttribute);
 
+#pragma warning disable CA1062 // Validate arguments of public methods
                 testCases.Add(new IdeTheoryTestCase(
                     details.ResolvedTestMethod,
                     details.TestCaseDisplayName,
@@ -114,10 +119,15 @@ namespace Xunit.Threading
                     details.SkipWhen,
                     testMethod.Traits.ToReadWrite(StringComparer.OrdinalIgnoreCase),
                     timeout: details.Timeout));
+#pragma warning restore CA1062 // Validate arguments of public methods
 #else
                 testCases.Add(new IdeTheoryTestCase(DiagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance));
 #endif
+#if USES_XUNIT_3
+                if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, supportedInstance) is { } instanceTestCase)
+#else
                 if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, DiagnosticMessageSink, supportedInstance) is { } instanceTestCase)
+#endif
                 {
                     testCases.Add(instanceTestCase);
                 }

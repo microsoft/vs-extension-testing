@@ -65,7 +65,9 @@ namespace Xunit.Threading
 #if USES_XUNIT_3
                     return new ValueTask<TimeSpan>(Task.FromException<TimeSpan>(exception));
 #else
-                    return Task.FromException<decimal>(exception);
+                    var tcs = new TaskCompletionSource<decimal>();
+                    tcs.SetException(exception);
+                    return tcs.Task;
 #endif
                 }
 #if USES_XUNIT_3

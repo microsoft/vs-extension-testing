@@ -36,9 +36,9 @@ namespace Xunit.Threading
 #endif
             IMessageBus messageBus,
             Type testClass,
-            object[] constructorArguments,
+            object?[] constructorArguments,
             MethodInfo testMethod,
-            object[] testMethodArguments,
+            object?[] testMethodArguments,
 #if USES_XUNIT_3
             IReadOnlyCollection<BeforeAfterTestAttributeType> beforeAfterAttributes,
 #else
@@ -55,8 +55,9 @@ namespace Xunit.Threading
 #if !USES_XUNIT_3
             new
 #endif
+            async
 #if USES_XUNIT_3
-            ValueTask<TimeSpan>
+            Task<TimeSpan>
 #else
             Task<decimal>
 #endif
@@ -68,7 +69,7 @@ namespace Xunit.Threading
 #pragma warning disable SA1113 // Comma should be on the same line as previous parameter
 #pragma warning disable SA1115 // Parameter should follow comma
 #pragma warning disable SA1116 // Split parameters should start on line after declaration
-            return Aggregator.RunAsync(async delegate
+            return await Aggregator.RunAsync(async delegate
             {
                 if (!CancellationTokenSource.IsCancellationRequested)
                 {

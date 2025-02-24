@@ -113,7 +113,7 @@ namespace Xunit.Threading
 #endif
         }
 
-        internal static ITestMethod CreateVisualStudioTestMethod(VisualStudioInstanceKey supportedInstance)
+        internal static ITestMethodType CreateVisualStudioTestMethod(VisualStudioInstanceKey supportedInstance)
         {
 #if USES_XUNIT_3
             var testAssembly = new XunitTestAssembly(typeof(Instances).Assembly);

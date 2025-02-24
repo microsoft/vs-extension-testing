@@ -41,6 +41,7 @@ namespace Xunit.OutOfProcess
             return TestInvokerInProc.CreateTestAssemblyRunner(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions);
         }
 
+#if !USES_XUNIT_3 // potentially dead code, even for xUnit 2? - https://github.com/microsoft/vs-extension-testing/pull/177
         public Tuple<decimal, Exception> InvokeTest(
 #if USES_XUNIT_3
             IXunitTest test,
@@ -79,6 +80,7 @@ namespace Xunit.OutOfProcess
                 testMethod,
                 testMethodArguments);
         }
+#endif
 
         private class TestOutputHelperWrapper : MarshalByRefObject, ITestOutputHelper
         {
