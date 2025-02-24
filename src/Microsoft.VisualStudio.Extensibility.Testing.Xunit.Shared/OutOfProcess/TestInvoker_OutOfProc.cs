@@ -36,7 +36,16 @@ namespace Xunit.OutOfProcess
             TestInvokerInProc.LoadAssembly(codeBase);
         }
 
-        public InProcessIdeTestAssemblyRunner CreateTestAssemblyRunner(ITestAssembly testAssembly, IXunitTestCase[] testCases, IMessageSink diagnosticMessageSink, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
+        public InProcessIdeTestAssemblyRunner CreateTestAssemblyRunner(
+#if USES_XUNIT_3
+            IXunitTestAssembly testAssembly,
+#else
+            ITestAssembly testAssembly,
+#endif
+            IXunitTestCase[] testCases,
+            IMessageSink diagnosticMessageSink,
+            IMessageSink executionMessageSink,
+            ITestFrameworkExecutionOptions executionOptions)
         {
             return TestInvokerInProc.CreateTestAssemblyRunner(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions);
         }

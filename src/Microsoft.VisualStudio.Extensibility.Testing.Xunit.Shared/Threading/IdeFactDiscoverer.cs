@@ -82,7 +82,11 @@ namespace Xunit.Threading
 #else
                         testCases.Add(new IdeTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance));
 #endif
+#if USES_XUNIT_3
+                        if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, supportedInstance) is { } instanceTestCase)
+#else
                         if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, _diagnosticMessageSink, supportedInstance) is { } instanceTestCase)
+#endif
                         {
                             testCases.Add(instanceTestCase);
                         }
