@@ -6,6 +6,8 @@
     <GenerateTestFrameworkAttribute Condition="'$(GenerateTestFrameworkAttribute)' == ''">true</GenerateTestFrameworkAttribute>
   </PropertyGroup>
 
+  <!-- TODO: In xUnit 3, the attribute has a single parameter Type. -->
+  <!-- The generation should be like [assembly: global::Xunit.TestFrameworkAttribute(typeof(global::Xunit.Harness.IdeTestFramework))] -->
   <ItemGroup Condition="'$(GenerateTestFrameworkAttribute)' == 'true'">
     <AssemblyAttribute Include="Xunit.TestFrameworkAttribute">
       <_Parameter1>Xunit.Harness.IdeTestFramework</_Parameter1>
