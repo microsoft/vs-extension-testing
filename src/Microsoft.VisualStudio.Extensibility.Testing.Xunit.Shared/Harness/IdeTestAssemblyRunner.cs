@@ -362,17 +362,31 @@ namespace Xunit.Harness
         private ImmutableList<string> GetExtensionFiles(IEnumerable<IXunitTestCase> testCases)
         {
             var extensionFiles = ImmutableHashSet.Create<string>(StringComparer.OrdinalIgnoreCase);
+
+#if USES_XUNIT_3
+            var visited = new HashSet<Assembly>();
+#else
             var visited = new HashSet<IAssemblyInfo>();
+#endif
             foreach (var testCase in testCases)
             {
+#if USES_XUNIT_3
+                var assemblyInfo = testCase.TestClass.Class.Assembly;
+#else
                 var assemblyInfo = testCase.Method.Type.Assembly;
+#endif
+
                 if (!visited.Add(assemblyInfo))
                 {
                     continue;
                 }
 
                 var requiredExtensions = assemblyInfo.GetCustomAttributes(typeof(RequireExtensionAttribute));
+#if USES_XUNIT_3
+                extensionFiles = extensionFiles.Union(requiredExtensions.Select(attributeInfo => ((RequireExtensionAttribute)attributeInfo).ExtensionFile));
+#else
                 extensionFiles = extensionFiles.Union(requiredExtensions.Select(attributeInfo => attributeInfo.GetConstructorArguments().First().ToString()));
+#endif
             }
 
             return extensionFiles.ToImmutableList();
