@@ -61,7 +61,6 @@ namespace Xunit.Harness
         {
             _ideInstancesInTests = null;
 
-            // TODO: Is it necessary to reset back to the original orderer?
             return base.OnTestAssemblyFinished(ctxt, summary);
         }
 #else
@@ -74,9 +73,21 @@ namespace Xunit.Harness
         }
 #endif
 
+#if USES_XUNIT_3
+        protected override async ValueTask<RunSummary> RunTestCollection(XunitTestAssemblyRunnerContext ctxt, IXunitTestCollection testCollection, IReadOnlyCollection<IXunitTestCase> testCases)
+#else
         protected override async Task<RunSummary> RunTestCollectionAsync(IMessageBus messageBus, ITestCollection testCollection, IEnumerable<IXunitTestCase> testCases, CancellationTokenSource cancellationTokenSource)
+#endif
         {
+#pragma warning disable SA1129 // Do not use default value type constructor
             var result = new RunSummary();
+#pragma warning restore SA1129 // Do not use default value type constructor
+
+#if USES_XUNIT_3
+            var messageBus = ctxt.MessageBus;
+            var cancellationTokenSource = ctxt.CancellationTokenSource;
+#endif
+
             var testAssemblyFinishedMessages = new List<ITestAssemblyFinished?>();
             var completedTestCaseIds = new HashSet<string>();
             try
@@ -588,6 +599,7 @@ namespace Xunit.Harness
             }
         }
 
+#if !USES_XUNIT_3
         /// <summary>
         /// A collection orderer wrapper that ensures <see cref="IdeInstanceTestCase"/> runs after other test cases.
         /// </summary>
@@ -614,5 +626,6 @@ namespace Xunit.Harness
                 return assemblyName.Name == "Microsoft.VisualStudio.Extensibility.Testing.Xunit";
             }
         }
+#endif
     }
 }

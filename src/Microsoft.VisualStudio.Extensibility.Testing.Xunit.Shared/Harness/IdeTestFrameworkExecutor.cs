@@ -5,7 +5,9 @@ namespace Xunit.Harness
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
     using Xunit;
@@ -21,7 +23,9 @@ namespace Xunit.Harness
     {
 #if USES_XUNIT_3
         public IdeTestFrameworkExecutor(Assembly assembly)
+#pragma warning disable CA1062 // Validate arguments of public methods
             : base(new XUnit3TestAssembly(assembly))
+#pragma warning restore CA1062 // Validate arguments of public methods
         {
         }
 #else
@@ -66,14 +70,35 @@ namespace Xunit.Harness
             {
                 get
                 {
-                    var fromBase = base.TestCollectionOrderer ?? DefaultTestCollectionOrderer.Instance;
-                    return new TestCollectionOrdererWrapper(); // TODO: Copy TestCollectionOrdererWrapper
+                    var original = ExtensibilityPointFactory.GetAssemblyTestCollectionOrderer(Assembly) ?? DefaultTestCollectionOrderer.Instance;
+                    return new TestCollectionOrdererWrapper(original); // TODO: Copy TestCollectionOrdererWrapper
                 }
             }
+        }
 
-            // Unnecessary cast suggestion here is likely a false positive?
-            public ITestCollectionOrderer? TestCollectionOrder => ((IXunitTestAssembly)this).TestCollectionOrderer;
+        private sealed class TestCollectionOrdererWrapper : ITestCollectionOrderer
+        {
+            public TestCollectionOrdererWrapper(ITestCollectionOrderer underlying)
+            {
+                Underlying = underlying;
+            }
 
+            public ITestCollectionOrderer Underlying { get; }
+
+            public IReadOnlyCollection<TTestCollection> OrderTestCollections<TTestCollection>(IReadOnlyCollection<TTestCollection> testCollections)
+                where TTestCollection : ITestCollection
+            {
+                var collections = Underlying.OrderTestCollections(testCollections).ToArray();
+                var collectionsWithoutIdeInstanceCases = collections.Where(collection => !ContainsIdeInstanceCase(collection));
+                var collectionsWithIdeInstanceCases = collections.Where(collection => ContainsIdeInstanceCase(collection));
+                return collectionsWithoutIdeInstanceCases.Concat(collectionsWithIdeInstanceCases).ToArray();
+            }
+
+            private static bool ContainsIdeInstanceCase(ITestCollection collection)
+            {
+                var assemblyName = new AssemblyName(collection.TestAssembly.AssemblyName);
+                return assemblyName.Name == "Microsoft.VisualStudio.Extensibility.Testing.Xunit";
+            }
         }
 #endif
     }
