@@ -351,11 +351,16 @@ namespace Xunit.Harness
             using var marshalledObjects = new MarshalledObjects();
             var executionMessageSinkFilter = new IpcMessageSink(ExecutionMessageSink, testCases.ToDictionary<IXunitTestCase, string, ITestCase>(testCase => testCase.UniqueID, testCase => testCase), finalAttempt: true, completedTestCaseIds, cancellationTokenSource.Token);
             marshalledObjects.Add(executionMessageSinkFilter);
+
+#if USES_XUNIT_3
+            XunitTestAssemblyRunner.Instance.Run()
+#else
             using (var runner = new XunitTestAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSinkFilter, ExecutionOptions))
             {
                 var runSummary = await runner.RunAsync();
                 return Tuple.Create(runSummary, executionMessageSinkFilter.TestAssemblyFinished);
             }
+#endif
         }
 
         /// <param name="currentAttempt">The 0-based attempt number. If this value is
