@@ -1420,6 +1420,8 @@ namespace Microsoft.VisualStudio
                         }
                     }
 
+                    var isXunit3 = compilation.ReferencedAssemblyNames.Any(assemblyName => assemblyName.Name == "xunit.v3.assert");
+
                     return new ReferenceDataModel(
                         hasSAsyncServiceProvider,
                         hasThreadHelperJoinableTaskContext,
@@ -1430,7 +1432,8 @@ namespace Microsoft.VisualStudio
                         hasOperationProgress,
                         hasOperationProgressStatusService,
                         hasEditorConstants,
-                        editorConstantsCommandIDMissingGuid);
+                        editorConstantsCommandIDMissingGuid,
+                        isXunit3);
                 });
 
             context.RegisterSourceOutput(
@@ -1917,7 +1920,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
             => _cleanupCancellationTokenSource.Token;
 
         /// <inheritdoc/>
-        public virtual async Task InitializeAsync()
+        public virtual async {(referenceDataModel.IsXUnit3 ? "ValueTask" : "Task")} InitializeAsync()
         {{
             TestServices = await CreateTestServicesAsync();
         }}
@@ -1927,7 +1930,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
         /// created by <see cref=""IAsyncLifetime.InitializeAsync""/>. This method is only called if
         /// <see cref=""InitializeAsync""/> completes successfully.
         /// </summary>
-        public virtual async Task DisposeAsync()
+        public virtual async {(referenceDataModel.IsXUnit3 ? "ValueTask" : "Task")} DisposeAsync()
         {{
             _cleanupCancellationTokenSource.CancelAfter(CleanupHangMitigatingTimeout);
 
@@ -2123,6 +2126,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
             bool HasOperationProgress,
             bool HasOperationProgressStatusService,
             bool HasEditorConstants,
-            bool EditorConstantsCommandIDMissingGuid);
+            bool EditorConstantsCommandIDMissingGuid,
+            bool IsXUnit3);
     }
 }
