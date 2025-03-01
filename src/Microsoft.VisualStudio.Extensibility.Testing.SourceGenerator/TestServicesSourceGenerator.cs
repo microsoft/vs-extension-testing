@@ -1518,19 +1518,19 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
 
         protected JoinableTaskFactory JoinableTaskFactory => TestServices.JoinableTaskFactory;
 
-        Task IAsyncLifetime.InitializeAsync()
+        {(referenceDataModel.IsXUnit3 ? "ValueTask" : "Task")} IAsyncLifetime.InitializeAsync()
         {{
             return InitializeCoreAsync();
         }}
 
-        Task IAsyncLifetime.DisposeAsync()
+        {(referenceDataModel.IsXUnit3 ? "ValueTask" : "Task")} {(referenceDataModel.IsXUnit3 ? "global::System.IAsyncDisposable" : "IAsyncLifetime")}.DisposeAsync()
         {{
-            return Task.CompletedTask;
+            return {(referenceDataModel.IsXUnit3 ? "default" : "Task.CompletedTask")};
         }}
 
-        protected virtual Task InitializeCoreAsync()
+        protected virtual {(referenceDataModel.IsXUnit3 ? "ValueTask" : "Task")} InitializeCoreAsync()
         {{
-            return Task.CompletedTask;
+            return {(referenceDataModel.IsXUnit3 ? "default" : "Task.CompletedTask")};
         }}
 
         protected async Task<TInterface> GetRequiredGlobalServiceAsync<TService, TInterface>(CancellationToken cancellationToken)
