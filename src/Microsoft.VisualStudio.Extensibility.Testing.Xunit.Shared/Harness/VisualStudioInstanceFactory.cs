@@ -166,7 +166,17 @@ namespace Xunit.Harness
                 _currentlyRunningInstance.Close(exitHostProcess: false);
             }
 
-            _currentlyRunningInstance = new VisualStudioInstance(hostProcess, dte, actualVersion, supportedPackageIds, installationPath);
+            // Run the snapshot collection operation, but don't block on its completion for the actual test execution
+            var screenshotTaskCancellationSource = new CancellationTokenSource();
+            var screenshotTask = Task.Run(() => TakeSnapshotEveryTimeSpanUntilProcessExitAsync(hostProcess, $"devenv{hostProcess.Id}", screenshotTaskCancellationSource.Token));
+            Func<Task> stopWatchingProcessAsync =
+                async () =>
+                {
+                    screenshotTaskCancellationSource.Cancel();
+                    await screenshotTask.ConfigureAwait(false);
+                };
+
+            _currentlyRunningInstance = new VisualStudioInstance(hostProcess, stopWatchingProcessAsync, dte, actualVersion, supportedPackageIds, installationPath);
             if (shouldStartNewInstance)
             {
                 var harnessAssemblyDirectory = Path.GetDirectoryName(typeof(VisualStudioInstanceFactory).Assembly.CodeBase);
@@ -393,14 +403,14 @@ namespace Xunit.Harness
             if (version.Major >= 12)
             {
                 var clearCacheProcess = Process.Start(CreateStartInfo(vsExeFile, silent: true, $"/clearcache {vsLaunchArgs}"));
-                TakeSnapshotEveryTimeSpanUntilProcessExit(clearCacheProcess, "clearcache");
+                await TakeSnapshotEveryTimeSpanUntilProcessExitAsync(clearCacheProcess, "clearcache", CancellationToken.None);
             }
 
             var updateConfigProcess = Process.Start(CreateStartInfo(vsExeFile, silent: true, $"/updateconfiguration {vsLaunchArgs}"));
-            TakeSnapshotEveryTimeSpanUntilProcessExit(updateConfigProcess, "updateconfiguration");
+            await TakeSnapshotEveryTimeSpanUntilProcessExitAsync(updateConfigProcess, "updateconfiguration", CancellationToken.None);
 
             var resetSettingsProcess = Process.Start(CreateStartInfo(vsExeFile, silent: true, $"/resetsettings General.vssettings /command \"File.Exit\" {vsLaunchArgs}"));
-            TakeSnapshotEveryTimeSpanUntilProcessExit(resetSettingsProcess, "resetsettings");
+            await TakeSnapshotEveryTimeSpanUntilProcessExitAsync(resetSettingsProcess, "resetsettings", CancellationToken.None);
 
             // Make sure we kill any leftover processes spawned by the host
             IntegrationHelper.KillProcess("DbgCLR");
@@ -408,10 +418,6 @@ namespace Xunit.Harness
             IntegrationHelper.KillProcess("dexplore");
 
             var process = Process.Start(CreateStartInfo(vsExeFile, silent: false, vsLaunchArgs));
-
-            // Run the snapshot collection operation, but don't block on its completion for the actual test execution
-            _ = Task.Run(() => TakeSnapshotEveryTimeSpanUntilProcessExit(process, $"devenv{process.Id}"));
-
             Debug.WriteLine($"Launched a new instance of Visual Studio. (ID: {process.Id})");
 
             return process;
@@ -464,7 +470,7 @@ namespace Xunit.Harness
             return path;
         }
 
-        private static void TakeSnapshotEveryTimeSpanUntilProcessExit(Process process, string commandBeingExecuted)
+        private static async Task TakeSnapshotEveryTimeSpanUntilProcessExitAsync(Process process, string commandBeingExecuted, CancellationToken cancellationToken)
         {
             var dir = DataCollectionService.GetLogDirectory();
             if (!Directory.Exists(dir))
@@ -472,17 +478,21 @@ namespace Xunit.Harness
                 Directory.CreateDirectory(dir);
             }
 
-            using var cancellatokenSource = new CancellationTokenSource();
+            using var cancellationTokenSource = new CancellationTokenSource();
+            using var linkedCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token, cancellationToken);
+
+            var screenshotTask = Task.Run(() => TakeScreenShotEveryTimeIntervalAsync(dir, commandBeingExecuted, linkedCancellationSource.Token), linkedCancellationSource.Token);
 
             try
             {
-                _ = Task.Run(() => TakeScreenShotEveryTimeIntervalAsync(dir, commandBeingExecuted, cancellatokenSource.Token));
                 process.WaitForExit();
             }
             finally
             {
-                cancellatokenSource.Cancel();
+                cancellationTokenSource.Cancel();
             }
+
+            await screenshotTask.ConfigureAwait(false);
 
             static async Task TakeScreenShotEveryTimeIntervalAsync(string directory, string commandBeingExecuted, CancellationToken cancellationToken)
             {
