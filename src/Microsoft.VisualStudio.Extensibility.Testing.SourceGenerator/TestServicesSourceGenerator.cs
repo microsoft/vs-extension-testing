@@ -1747,6 +1747,10 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
                     }
 
                     usings2.Add("global::Xunit");
+                    if (referenceDataModel.IsXUnit3)
+                    {
+                        usings2.Add("global::Xunit.v3");
+                    }
 
                     if (!referenceDataModel.HasThreadHelperJoinableTaskContext)
                     {
@@ -1813,7 +1817,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
     /// <item><description><see cref=""BeforeAfterTestAttribute.Before""/></description></item>
     /// <item><description>Test method</description></item>
     /// <item><description><see cref=""BeforeAfterTestAttribute.After""/></description></item>
-    /// <item><description><see cref=""IAsyncLifetime.DisposeAsync""/></description></item>
+    /// <item><description><see cref=""{(referenceDataModel.IsXUnit3 ? "global::System.IAsyncDisposable" : "IAsyncLifetime")}.DisposeAsync""/></description></item>
     /// <item><description><see cref=""IDisposable.Dispose""/></description></item>
     /// </list>
     /// </remarks>
@@ -1926,7 +1930,7 @@ namespace Microsoft.VisualStudio.Extensibility.Testing
         }}
 
         /// <summary>
-        /// This method implements <see cref=""IAsyncLifetime.DisposeAsync""/>, and is used for releasing resources
+        /// This method implements <see cref=""{(referenceDataModel.IsXUnit3 ? "global::System.IAsyncDisposable" : "IAsyncLifetime")}.DisposeAsync""/>, and is used for releasing resources
         /// created by <see cref=""IAsyncLifetime.InitializeAsync""/>. This method is only called if
         /// <see cref=""InitializeAsync""/> completes successfully.
         /// </summary>
