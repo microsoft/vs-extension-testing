@@ -42,11 +42,20 @@ namespace Xunit.InProcess
             ITestAssembly testAssembly,
 #endif
             IXunitTestCase[] testCases,
+#if !USES_XUNIT_3
             IMessageSink diagnosticMessageSink,
+#endif
             IMessageSink executionMessageSink,
             ITestFrameworkExecutionOptions executionOptions)
         {
-            return new InProcessIdeTestAssemblyRunner(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions);
+            return new InProcessIdeTestAssemblyRunner(
+                testAssembly,
+                testCases,
+#if !USES_XUNIT_3
+                diagnosticMessageSink,
+#endif
+                executionMessageSink,
+                executionOptions);
         }
 
 #if !USES_XUNIT_3 // potentially dead code, even for xUnit 2? - https://github.com/microsoft/vs-extension-testing/pull/177

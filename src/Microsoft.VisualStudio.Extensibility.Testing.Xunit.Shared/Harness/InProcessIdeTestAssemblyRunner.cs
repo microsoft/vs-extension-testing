@@ -42,7 +42,9 @@ namespace Xunit.Harness
             ITestAssembly testAssembly,
 #endif
             IEnumerable<IXunitTestCase> testCases,
+#if !USES_XUNIT_3
             IMessageSink diagnosticMessageSink,
+#endif
             IMessageSink executionMessageSink,
             ITestFrameworkExecutionOptions executionOptions)
         {

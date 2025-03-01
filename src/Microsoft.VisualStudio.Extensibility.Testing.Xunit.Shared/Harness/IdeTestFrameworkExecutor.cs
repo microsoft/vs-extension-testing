@@ -45,7 +45,7 @@ namespace Xunit.Harness
             try
             {
 #if USES_XUNIT_3
-                await new IdeTestAssemblyRunner().Run(TestAssembly, testCases, executionMessageSink, executionOptions);
+                await new IdeTestAssemblyRunner(executionMessageSink, executionOptions).Run(TestAssembly, testCases, executionMessageSink, executionOptions);
 #else
                 using (var assemblyRunner = new IdeTestAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSink, executionOptions))
                 {

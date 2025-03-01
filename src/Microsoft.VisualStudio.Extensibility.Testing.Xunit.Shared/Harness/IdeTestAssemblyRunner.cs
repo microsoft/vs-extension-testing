@@ -34,7 +34,17 @@ namespace Xunit.Harness
 
         private HashSet<VisualStudioInstanceKey>? _ideInstancesInTests;
 
-#if !USES_XUNIT_3
+#if USES_XUNIT_3
+        public IdeTestAssemblyRunner(IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
+        {
+            ExecutionMessageSink = executionMessageSink;
+            ExecutionOptions = executionOptions;
+        }
+
+        private IMessageSink ExecutionMessageSink { get; }
+
+        private ITestFrameworkExecutionOptions ExecutionOptions { get; }
+#else
         public IdeTestAssemblyRunner(ITestAssembly testAssembly, IEnumerable<IXunitTestCase> testCases, IMessageSink diagnosticMessageSink, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
             : base(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions)
         {
@@ -346,14 +356,16 @@ namespace Xunit.Harness
 
         private async Task<Tuple<RunSummary, ITestAssemblyFinished?>> RunTestCollectionForUnspecifiedVersionAsync(HashSet<string> completedTestCaseIds, IMessageBus messageBus, ITestCollection testCollection, IEnumerable<IXunitTestCase> testCases, CancellationTokenSource cancellationTokenSource)
         {
+#if !USES_XUNIT_3
             // These tests just run in the current process, but we still need to hook the assembly and collection events
             // to work correctly in mixed-testing scenarios.
             using var marshalledObjects = new MarshalledObjects();
             var executionMessageSinkFilter = new IpcMessageSink(ExecutionMessageSink, testCases.ToDictionary<IXunitTestCase, string, ITestCase>(testCase => testCase.UniqueID, testCase => testCase), finalAttempt: true, completedTestCaseIds, cancellationTokenSource.Token);
             marshalledObjects.Add(executionMessageSinkFilter);
+#endif
 
 #if USES_XUNIT_3
-            XunitTestAssemblyRunner.Instance.Run()
+            return Tuple.Create(await XunitTestAssemblyRunner.Instance.Run((IXunitTestAssembly)testCollection.TestAssembly, testCases.CastOrToReadOnlyList(), ExecutionMessageSink, ExecutionOptions), (ITestAssemblyFinished?)null);
 #else
             using (var runner = new XunitTestAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSinkFilter, ExecutionOptions))
             {
@@ -393,7 +405,17 @@ namespace Xunit.Harness
                     using (var messageFilter = new MessageFilter())
                     using (var visualStudioContext = await visualStudioInstanceFactory.GetNewOrUsedInstanceAsync(GetVersion(visualStudioInstanceKey.Version), visualStudioInstanceKey.RootSuffix, environmentVariables, GetExtensionFiles(testCases), ImmutableHashSet.Create<string>()).ConfigureAwait(true))
                     {
-                        using (var runner = visualStudioContext.Instance.TestInvoker.CreateTestAssemblyRunner(new IpcTestAssembly(TestAssembly), testCases.ToArray(), new IpcMessageSink(DiagnosticMessageSink, knownTestCasesByUniqueId, finalAttempt, new HashSet<string>(), cancellationTokenSource.Token), executionMessageSinkFilter, ExecutionOptions))
+#if USES_XUNIT_3
+                        var testAssembly = (IXunitTestAssembly)testCollection.TestAssembly;
+#else
+                        var testAssembly = TestAssembly;
+#endif
+
+#if USES_XUNIT_3
+                        var runner = visualStudioContext.Instance.TestInvoker.CreateTestAssemblyRunner(new IpcTestAssembly(testAssembly), testCases.ToArray(), executionMessageSinkFilter, ExecutionOptions);
+#else
+                        using (var runner = visualStudioContext.Instance.TestInvoker.CreateTestAssemblyRunner(new IpcTestAssembly(testAssembly), testCases.ToArray(), new IpcMessageSink(DiagnosticMessageSink, knownTestCasesByUniqueId, finalAttempt, new HashSet<string>(), cancellationTokenSource.Token), executionMessageSinkFilter, ExecutionOptions))
+#endif
                         {
                             marshalledObjects.Add(runner);
 
@@ -757,8 +779,53 @@ namespace Xunit.Harness
             public override object? InitializeLifetimeService() => null;
         }
 
-        private class IpcTestAssembly : LongLivedMarshalByRefObject, ITestAssembly
+        private class IpcTestAssembly : LongLivedMarshalByRefObject,
+#if USES_XUNIT_3
+            IXunitTestAssembly
+#else
+            ITestAssembly
+#endif
         {
+#if USES_XUNIT_3
+            private readonly IXunitTestAssembly _testAssembly;
+
+            public IpcTestAssembly(IXunitTestAssembly testAssembly)
+            {
+                _testAssembly = testAssembly;
+            }
+
+            public Assembly Assembly => _testAssembly.Assembly;
+
+            public IReadOnlyCollection<Type> AssemblyFixtureTypes => _testAssembly.AssemblyFixtureTypes;
+
+            public IReadOnlyCollection<IBeforeAfterTestAttribute> BeforeAfterTestAttributes => _testAssembly.BeforeAfterTestAttributes;
+
+            public ICollectionBehaviorAttribute? CollectionBehavior => _testAssembly.CollectionBehavior;
+
+#pragma warning disable SA1316 // Tuple element names should use correct casing
+            public IReadOnlyDictionary<string, (Type Type, CollectionDefinitionAttribute Attribute)> CollectionDefinitions => _testAssembly.CollectionDefinitions;
+#pragma warning restore SA1316 // Tuple element names should use correct casing
+
+            public string TargetFramework => _testAssembly.TargetFramework;
+
+            public ITestCaseOrderer? TestCaseOrderer => _testAssembly.TestCaseOrderer;
+
+            public ITestCollectionOrderer? TestCollectionOrderer => _testAssembly.TestCollectionOrderer;
+
+            public Version Version => _testAssembly.Version;
+
+            public string AssemblyName => _testAssembly.AssemblyName;
+
+            public string AssemblyPath => _testAssembly.AssemblyPath;
+
+            public string? ConfigFilePath => _testAssembly.ConfigFilePath;
+
+            public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => _testAssembly.Traits;
+
+            public string UniqueID => _testAssembly.UniqueID;
+
+            public Guid ModuleVersionID => _testAssembly.ModuleVersionID;
+#else
             private readonly ITestAssembly _testAssembly;
             private readonly IAssemblyInfo _assembly;
 
@@ -781,8 +848,10 @@ namespace Xunit.Harness
             {
                 _testAssembly.Serialize(info);
             }
+#endif
         }
 
+#if !USES_XUNIT_3
         private class IpcAssemblyInfo : LongLivedMarshalByRefObject, IAssemblyInfo
         {
             private IAssemblyInfo _assemblyInfo;
@@ -812,7 +881,6 @@ namespace Xunit.Harness
             }
         }
 
-#if !USES_XUNIT_3
         /// <summary>
         /// A collection orderer wrapper that ensures <see cref="IdeInstanceTestCase"/> runs after other test cases.
         /// </summary>
