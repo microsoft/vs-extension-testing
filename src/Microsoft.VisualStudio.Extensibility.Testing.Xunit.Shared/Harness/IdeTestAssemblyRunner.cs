@@ -13,6 +13,9 @@ namespace Xunit.Harness
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Threading;
+#if USES_XUNIT_3
+    using Xunit.Internal;
+#endif
 #if !USES_XUNIT_3
     using Xunit.Abstractions;
 #endif
@@ -79,7 +82,7 @@ namespace Xunit.Harness
         protected override async Task<RunSummary> RunTestCollectionAsync(IMessageBus messageBus, ITestCollection testCollection, IEnumerable<IXunitTestCase> testCases, CancellationTokenSource cancellationTokenSource)
 #endif
         {
-#pragma warning disable SA1129 // Do not use default value type constructor
+#pragma warning disable SA1129 // Do not use default value type constructor - Note: in xUnit 2 it's class, but in 3 it's struct!
             var result = new RunSummary();
 #pragma warning restore SA1129 // Do not use default value type constructor
 
@@ -90,6 +93,7 @@ namespace Xunit.Harness
 
             var testAssemblyFinishedMessages = new List<ITestAssemblyFinished?>();
             var completedTestCaseIds = new HashSet<string>();
+#pragma warning disable CS0168 // Variable is declared but never used
             try
             {
                 // Handle [Fact], and also handle IdeSkippedDataRowTestCase that doesn't run inside Visual Studio
@@ -133,18 +137,70 @@ namespace Xunit.Harness
                     {
                         // Already had at least one test run in this version, so no need to launch it separately.
                         // Report it as passed and continue.
-                        ExecutionMessageSink.OnMessage(new TestClassStarting(new[] { ideInstanceTestCase }, ideInstanceTestCase.TestMethod.TestClass));
-                        ExecutionMessageSink.OnMessage(new TestMethodStarting(new[] { ideInstanceTestCase }, ideInstanceTestCase.TestMethod));
-                        ExecutionMessageSink.OnMessage(new TestCaseStarting(ideInstanceTestCase));
+                        // TODO: Ensure that the move to IMessageBus.QueueMessage doesn't break xUnit 2. Otherwise, introduce #if to be more safe.
+                        messageBus.QueueMessage(CreateTestClassStarting(new[] { ideInstanceTestCase }, ideInstanceTestCase.TestMethod.TestClass));
+                        messageBus.QueueMessage(CreateTestMethodStarting(new[] { ideInstanceTestCase }, ideInstanceTestCase.TestMethod));
+                        messageBus.QueueMessage(CreateTestCaseStarting(ideInstanceTestCase));
 
+#if USES_XUNIT_3
+                        DateTimeOffset now = DateTimeOffset.UtcNow;
+                        messageBus.QueueMessage(new TestStarting()
+                        {
+                            AssemblyUniqueID = ideInstanceTestCase.TestCollection.TestAssembly.UniqueID,
+                            Explicit = false,
+                            StartTime = now,
+                            TestCaseUniqueID = ideInstanceTestCase.UniqueID,
+                            TestClassUniqueID = ideInstanceTestCase.TestClass.UniqueID,
+                            TestCollectionUniqueID = ideInstanceTestCase.TestCollection.UniqueID,
+                            TestDisplayName = ideInstanceTestCase.TestCaseDisplayName, // Unsure if this is the right TestDisplayName
+                            TestMethodUniqueID = ideInstanceTestCase.TestMethod.UniqueID,
+                            TestUniqueID = ideInstanceTestCase.UniqueID, // Currently same as TestCaseUniqueID, but that's suspicious and is likely wrong.
+                            Timeout = 0,
+                            Traits = new Dictionary<string, IReadOnlyCollection<string>>(), // Unlikely to be correct.
+
+                            // General note: ITest is available on TestRunner context, not TestAssemblyRunner context.
+                            // So, with the breaking changes of xUni 3, we may be forced to refactor things in the right place.
+                            // It already feels weird for xUnit 2 implementation that TestAssemblyRunner is responsible for this.
+                        });
+
+                        messageBus.QueueMessage(new TestPassed()
+                        {
+                            AssemblyUniqueID = ideInstanceTestCase.TestCollection.TestAssembly.UniqueID,
+                            ExecutionTime = 0,
+                            FinishTime = now,
+                            Output = string.Empty,
+                            TestCaseUniqueID = ideInstanceTestCase.UniqueID,
+                            TestClassUniqueID = ideInstanceTestCase.TestClass.UniqueID,
+                            TestCollectionUniqueID = ideInstanceTestCase.TestCollection.UniqueID,
+                            TestMethodUniqueID = ideInstanceTestCase.TestMethod.UniqueID,
+                            TestUniqueID = ideInstanceTestCase.UniqueID, // Currently same as TestCaseUniqueID, but that's suspicious and is likely wrong.
+                            Warnings = null,
+                        });
+
+                        messageBus.QueueMessage(new TestFinished()
+                        {
+                            AssemblyUniqueID = ideInstanceTestCase.TestCollection.TestAssembly.UniqueID,
+                            Attachments = new Dictionary<string, TestAttachment>(),
+                            ExecutionTime = 0,
+                            FinishTime = now,
+                            Output = string.Empty,
+                            TestCaseUniqueID = ideInstanceTestCase.UniqueID,
+                            TestClassUniqueID = ideInstanceTestCase.TestClass.UniqueID,
+                            TestCollectionUniqueID = ideInstanceTestCase.TestCollection.UniqueID,
+                            TestMethodUniqueID = ideInstanceTestCase.TestMethod.UniqueID,
+                            TestUniqueID = ideInstanceTestCase.UniqueID, // Currently same as TestCaseUniqueID, but that's suspicious and is likely wrong.
+                            Warnings = null,
+                        });
+#else
                         var test = new XunitTest(ideInstanceTestCase, ideInstanceTestCase.DisplayName);
-                        ExecutionMessageSink.OnMessage(new TestStarting(test));
-                        ExecutionMessageSink.OnMessage(new TestPassed(test, 0, output: null));
-                        ExecutionMessageSink.OnMessage(new TestFinished(test, 0, output: null));
+                        messageBus.QueueMessage(new TestStarting(test));
+                        messageBus.QueueMessage(new TestPassed(test, 0, output: null));
+                        messageBus.QueueMessage(new TestFinished(test, 0, output: null));
+#endif
 
-                        ExecutionMessageSink.OnMessage(new TestCaseFinished(ideInstanceTestCase, 0, 1, 0, 0));
-                        ExecutionMessageSink.OnMessage(new TestMethodFinished(new[] { ideInstanceTestCase }, ideInstanceTestCase.TestMethod, 0, 1, 0, 0));
-                        ExecutionMessageSink.OnMessage(new TestClassFinished(new[] { ideInstanceTestCase }, ideInstanceTestCase.TestMethod.TestClass, 0, 1, 0, 0));
+                        messageBus.QueueMessage(CreateTestCaseFinished(ideInstanceTestCase));
+                        messageBus.QueueMessage(CreateTestMethodFinished(ideInstanceTestCase));
+                        messageBus.QueueMessage(CreateTestClassFinished(ideInstanceTestCase));
 
                         continue;
                     }
@@ -165,31 +221,44 @@ namespace Xunit.Harness
                 var remainingTestCases = testCases.Except(completedTestCases);
                 foreach (var casesByTestClass in remainingTestCases.GroupBy(testCase => testCase.TestMethod.TestClass))
                 {
-                    ExecutionMessageSink.OnMessage(new TestClassStarting(casesByTestClass.ToArray(), casesByTestClass.Key));
+                    messageBus.QueueMessage(CreateTestClassStarting(casesByTestClass.ToArray(), casesByTestClass.Key));
 
                     foreach (var casesByTestMethod in casesByTestClass.GroupBy(testCase => testCase.TestMethod))
                     {
-                        ExecutionMessageSink.OnMessage(new TestMethodStarting(casesByTestMethod.ToArray(), casesByTestMethod.Key));
+                        messageBus.QueueMessage(CreateTestMethodStarting(casesByTestMethod.ToArray(), casesByTestMethod.Key));
 
                         foreach (var testCase in casesByTestMethod)
                         {
-                            ExecutionMessageSink.OnMessage(new TestCaseStarting(testCase));
+                            messageBus.QueueMessage(CreateTestCaseStarting(testCase));
 
+#if USES_XUNIT_3
+                            throw; // TODO
+#else
                             var test = new XunitTest(testCase, testCase.DisplayName);
-                            ExecutionMessageSink.OnMessage(new TestStarting(test));
-                            ExecutionMessageSink.OnMessage(new TestFailed(test, 0, null, new InvalidOperationException("Test did not run due to a harness failure.", ex)));
+                            messageBus.QueueMessage(new TestStarting(test));
+                            messageBus.QueueMessage(new TestFailed(test, 0, null, new InvalidOperationException("Test did not run due to a harness failure.", ex)));
                             result.Failed++;
-                            ExecutionMessageSink.OnMessage(new TestFinished(test, 0, null));
+                            messageBus.QueueMessage(new TestFinished(test, 0, null));
 
-                            ExecutionMessageSink.OnMessage(new TestCaseFinished(testCase, 0, 1, 1, 0));
+                            messageBus.QueueMessage(new TestCaseFinished(testCase, 0, 1, 1, 0));
+#endif
                         }
 
-                        ExecutionMessageSink.OnMessage(new TestMethodFinished(casesByTestMethod.ToArray(), casesByTestMethod.Key, 0, casesByTestMethod.Count(), casesByTestMethod.Count(), 0));
+#if USES_XUNIT_3
+                        throw; // TODO
+#else
+                        messageBus.QueueMessage(new TestMethodFinished(casesByTestMethod.ToArray(), casesByTestMethod.Key, 0, casesByTestMethod.Count(), casesByTestMethod.Count(), 0));
+#endif
                     }
 
-                    ExecutionMessageSink.OnMessage(new TestClassFinished(casesByTestClass.ToArray(), casesByTestClass.Key, 0, casesByTestClass.Count(), casesByTestClass.Count(), 0));
+#if USES_XUNIT_3
+                    throw; // TODO
+#else
+                    messageBus.QueueMessage(new TestClassFinished(casesByTestClass.ToArray(), casesByTestClass.Key, 0, casesByTestClass.Count(), casesByTestClass.Count(), 0));
+#endif
                 }
             }
+#pragma warning restore CS0168 // Variable is declared but never used
 
             return result;
         }
@@ -357,6 +426,131 @@ namespace Xunit.Harness
                     }
                 }
             };
+        }
+
+        private static TestClassStarting CreateTestClassStarting(IEnumerable<ITestCase> testCases, ITestClass testClass)
+        {
+#if USES_XUNIT_3
+            return new TestClassStarting()
+            {
+                AssemblyUniqueID = testClass.TestCollection.TestAssembly.UniqueID,
+                TestClassName = testClass.TestClassName,
+                TestClassNamespace = testClass.TestClassNamespace,
+                TestClassSimpleName = testClass.TestClassSimpleName,
+                TestClassUniqueID = testClass.UniqueID,
+                TestCollectionUniqueID = testClass.TestCollection.UniqueID,
+                Traits = testClass.Traits,
+            };
+#else
+            return new TestClassStarting(testCases, testClass);
+#endif
+        }
+
+        private static TestMethodStarting CreateTestMethodStarting(IEnumerable<ITestCase> testCases, ITestMethod testMethod)
+        {
+#if USES_XUNIT_3
+            return new TestMethodStarting()
+            {
+                AssemblyUniqueID = testMethod.TestClass.TestCollection.TestAssembly.UniqueID,
+                MethodName = testMethod.MethodName,
+                TestClassUniqueID = testMethod.TestClass.UniqueID,
+                TestCollectionUniqueID = testMethod.TestClass.TestCollection.UniqueID,
+                TestMethodUniqueID = testMethod.UniqueID,
+                Traits = testMethod.Traits,
+            };
+#else
+            return new TestMethodStarting(testCases, testMethod);
+#endif
+        }
+
+        private static TestCaseStarting CreateTestCaseStarting(ITestCase testCase)
+        {
+#if USES_XUNIT_3
+            return new TestCaseStarting()
+            {
+                AssemblyUniqueID = testCase.TestCollection.TestAssembly.UniqueID,
+                Explicit = testCase.Explicit,
+                SkipReason = testCase.SkipReason,
+                SourceFilePath = testCase.SourceFilePath,
+                SourceLineNumber = testCase.SourceLineNumber,
+                TestCaseDisplayName = testCase.TestCaseDisplayName,
+                TestCaseUniqueID = testCase.UniqueID,
+                TestClassMetadataToken = testCase.TestClassMetadataToken,
+                TestClassName = testCase.TestClassName,
+                TestClassNamespace = testCase.TestClassNamespace,
+                TestClassSimpleName = testCase.TestClassSimpleName,
+                TestClassUniqueID = testCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = testCase.TestCollection.UniqueID,
+                TestMethodMetadataToken = testCase.TestMethodMetadataToken,
+                TestMethodName = testCase.TestMethodName,
+                TestMethodParameterTypesVSTest = testCase.TestMethodParameterTypesVSTest,
+                TestMethodReturnTypeVSTest = testCase.TestMethodReturnTypeVSTest,
+                TestMethodUniqueID = testCase.TestMethod?.UniqueID,
+                Traits = testCase.Traits,
+            };
+#else
+            return new TestCaseStarting(testCase);
+#endif
+        }
+
+        private static TestCaseFinished CreateTestCaseFinished(ITestCase testCase)
+        {
+#if USES_XUNIT_3
+            return new TestCaseFinished()
+            {
+                AssemblyUniqueID = testCase.TestCollection.TestAssembly.UniqueID,
+                ExecutionTime = 0m,
+                TestCaseUniqueID = testCase.UniqueID,
+                TestClassUniqueID = testCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = testCase.TestCollection.UniqueID,
+                TestMethodUniqueID = testCase.TestMethod?.UniqueID,
+                TestsFailed = 0,
+                TestsNotRun = 0,
+                TestsSkipped = 0,
+                TestsTotal = 1,
+            };
+#else
+            return new TestCaseFinished(testCase, 0, 1, 0, 0);
+#endif
+        }
+
+        private static TestMethodFinished CreateTestMethodFinished(ITestCase testCase)
+        {
+#if USES_XUNIT_3
+            return new TestMethodFinished()
+            {
+                AssemblyUniqueID = testCase.TestCollection.TestAssembly.UniqueID,
+                ExecutionTime = 0m,
+                TestClassUniqueID = testCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = testCase.TestCollection.UniqueID,
+                TestMethodUniqueID = testCase.TestMethod?.UniqueID,
+                TestsFailed = 0,
+                TestsNotRun = 0,
+                TestsSkipped = 0,
+                TestsTotal = 1,
+            };
+#else
+            return new TestMethodFinished(new[] { testCase }, testCase.TestMethod, 0, 1, 0, 0);
+#endif
+        }
+
+        private static TestClassFinished CreateTestClassFinished(ITestCase testCase)
+        {
+#if USES_XUNIT_3
+            return new TestClassFinished()
+            {
+                AssemblyUniqueID = testCase.TestCollection.TestAssembly.UniqueID,
+                ExecutionTime = 0m,
+                TestClassUniqueID = testCase.TestClass?.UniqueID,
+                TestCollectionUniqueID = testCase.TestCollection.UniqueID,
+                TestsFailed = 0,
+                TestsNotRun = 0,
+                TestsSkipped = 0,
+                TestsTotal = 1,
+            };
+#else
+            return new TestClassFinished(new[] { testCase }, testCase.TestMethod.TestClass, 0, 1, 0, 0);
+#endif
         }
 
         private ImmutableList<string> GetExtensionFiles(IEnumerable<IXunitTestCase> testCases)
