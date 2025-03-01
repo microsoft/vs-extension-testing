@@ -4,6 +4,7 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>Xunit</RootNamespace>
+    <IsXUnit3>true</IsXUnit3>
     <DefineConstants>$(DefineConstants);MERGED_PIA;USES_XUNIT_3</DefineConstants>
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -45,4 +46,8 @@
 
   <Import Project="..\Microsoft.VisualStudio.Extensibility.Testing.Xunit.Shared\Microsoft.VisualStudio.Extensibility.Testing.Xunit.Shared.projitems" Label="Shared" />
 
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)build\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.props" PackagePath="build" />
+    <Content Include="$(MSBuildThisFileDirectory)build\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.targets" PackagePath="build" />
+  </ItemGroup>
 </Project>
