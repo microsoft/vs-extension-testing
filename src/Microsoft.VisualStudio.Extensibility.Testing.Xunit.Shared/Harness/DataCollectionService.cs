@@ -111,6 +111,13 @@ namespace Xunit.Harness
 #endif
         }
 
+        internal static string GetTestName(ITestCaseStarting testCaseStarting)
+#if USES_XUNIT_3
+            => $"{testCaseStarting.TestClassName}.{testCaseStarting.TestMethodName}";
+#else
+            => GetTestName(testCaseStarting.TestCase);
+#endif
+
         internal static void InstallFirstChanceExceptionHandler()
         {
             if (!_firstChanceExceptionHandlerInstalled)
