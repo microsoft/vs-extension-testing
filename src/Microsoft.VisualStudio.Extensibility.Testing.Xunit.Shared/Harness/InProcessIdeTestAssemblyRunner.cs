@@ -93,7 +93,7 @@ namespace Xunit.Harness
         // NOTE: These parameters are unused.
         // However, for backward compatibility, we keep them as this method is public.
         public Tuple<int, int, int, decimal> RunTestCollection(IMessageBus messageBus, ITestCollection testCollection, IXunitTestCase[] testCases)
-            => RunTestCollection()
+            => RunTestCollection();
 #endif
 
 #if USES_XUNIT_3
