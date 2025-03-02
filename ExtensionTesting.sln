@@ -65,8 +65,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.VisualStudio.Exte
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.VisualStudio.Extensibility.Testing.SourceGenerator.UnitTests", "src\Microsoft.VisualStudio.Extensibility.Testing.SourceGenerator.UnitTests\Microsoft.VisualStudio.Extensibility.Testing.SourceGenerator.UnitTests.csproj", "{DA9797F0-F158-42AB-BE2B-922588756941}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3", "Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3", "{1F46A366-159A-47E7-86C7-D1282D7F711B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3", "src\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.csproj", "{076FCA31-75AF-4DE5-BD54-A3D057D8F2BD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.IntegrationTests", "src\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.IntegrationTests\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.IntegrationTests.csproj", "{073D4E58-1EA3-463B-BE40-F636B3F98593}"
@@ -164,7 +162,7 @@ Global
 		{CE32D863-E8C3-461F-80C7-32D0B0853217} = {7A983C88-A0B8-4A6C-8837-E45ADD6C01EE}
 		{25E61E07-E449-4ABB-A197-BD5C8EE3347F} = {D2869BF7-27E8-42B9-BF23-8790C0CE08C2}
 		{DA9797F0-F158-42AB-BE2B-922588756941} = {D2869BF7-27E8-42B9-BF23-8790C0CE08C2}
-		{076FCA31-75AF-4DE5-BD54-A3D057D8F2BD} = {1F46A366-159A-47E7-86C7-D1282D7F711B}
+		{076FCA31-75AF-4DE5-BD54-A3D057D8F2BD} = {9ED7BE6A-BDEE-44CF-B5C8-EA5F6E212CFD}
 		{073D4E58-1EA3-463B-BE40-F636B3F98593} = {7A983C88-A0B8-4A6C-8837-E45ADD6C01EE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
