@@ -4,14 +4,24 @@
 namespace Xunit.Threading
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.ComponentModel;
+    using System.Data;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
+#if USES_XUNIT_3
+    using Xunit.Internal;
+#endif
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     public sealed class IdeInstanceTestCase : IdeTestCaseBase
     {
@@ -31,17 +41,64 @@ namespace Xunit.Threading
         {
         }
 
+#if USES_XUNIT_3
+        public IdeInstanceTestCase(
+            IXunitTestMethod testMethod,
+            string testCaseDisplayName,
+            string uniqueID,
+            bool @explicit,
+            VisualStudioInstanceKey visualStudioInstanceKey,
+            string? skipReason = null,
+            Type? skipType = null,
+            string? skipUnless = null,
+            string? skipWhen = null,
+            Dictionary<string, HashSet<string>>? traits = null,
+            object?[]? testMethodArguments = null,
+            string? sourceFilePath = null,
+            int? sourceLineNumber = null,
+            int? timeout = null)
+            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, includeRootSuffixInDisplayName: true, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+        {
+        }
+#else
         public IdeInstanceTestCase(IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, TestMethodDisplayOptions defaultMethodDisplayOptions, ITestMethod testMethod, VisualStudioInstanceKey visualStudioInstanceKey, object?[]? testMethodArguments = null)
             : base(diagnosticMessageSink, defaultMethodDisplay, defaultMethodDisplayOptions, testMethod, visualStudioInstanceKey, testMethodArguments)
         {
         }
+#endif
 
+#if !USES_XUNIT_3
         protected override bool IncludeRootSuffixInDisplayName => true;
+#endif
 
-        public static IdeInstanceTestCase? TryCreateNewInstanceForFramework(ITestFrameworkDiscoveryOptions discoveryOptions, IMessageSink diagnosticMessageSink, VisualStudioInstanceKey visualStudioInstanceKey)
+        public static IdeInstanceTestCase? TryCreateNewInstanceForFramework(
+            ITestFrameworkDiscoveryOptions discoveryOptions,
+#if !USES_XUNIT_3
+            IMessageSink diagnosticMessageSink,
+#endif
+            VisualStudioInstanceKey visualStudioInstanceKey)
         {
             var lazyInstances = _instances.GetValue(discoveryOptions, static _ => new StrongBox<ImmutableDictionary<VisualStudioInstanceKey, IdeInstanceTestCase>>(ImmutableDictionary<VisualStudioInstanceKey, IdeInstanceTestCase>.Empty));
-            var candidateTestCase = new IdeInstanceTestCase(diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), IdeFactDiscoverer.CreateVisualStudioTestMethod(visualStudioInstanceKey), visualStudioInstanceKey);
+            var testMethod = IdeFactDiscoverer.CreateVisualStudioTestMethod(visualStudioInstanceKey);
+#if USES_XUNIT_3
+            var details = TestIntrospectionHelper.GetTestCaseDetails(discoveryOptions, testMethod, new FactAttribute());
+            var traits = TestIntrospectionHelper.GetTraits(testMethod, null);
+
+            var candidateTestCase = new IdeInstanceTestCase(
+                details.ResolvedTestMethod,
+                details.TestCaseDisplayName,
+                details.UniqueID,
+                details.Explicit,
+                visualStudioInstanceKey,
+                details.SkipReason,
+                details.SkipType,
+                details.SkipUnless,
+                details.SkipWhen,
+                testMethod.Traits.ToReadWrite(StringComparer.OrdinalIgnoreCase),
+                timeout: details.Timeout);
+#else
+            var candidateTestCase = new IdeInstanceTestCase(diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, visualStudioInstanceKey);
+#endif
             var testCase = ImmutableInterlocked.GetOrAdd(ref lazyInstances.Value, visualStudioInstanceKey, candidateTestCase);
             if (testCase != candidateTestCase)
             {
@@ -52,20 +109,35 @@ namespace Xunit.Threading
             return candidateTestCase;
         }
 
-        public override Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+#if !USES_XUNIT_3 // Test case no longer responsible for running. TODO: Find out where to plug this logic.
+        public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
-            TestCaseRunner<IXunitTestCase> runner;
+            string displayName =
+#if USES_XUNIT_3
+                TestCaseDisplayName;
+#else
+                DisplayName;
+#endif
+
             if (!string.IsNullOrEmpty(SkipReason))
             {
                 // Use XunitTestCaseRunner so the skip gets reported without trying to open VS
-                runner = new XunitTestCaseRunner(this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource);
+#if USES_XUNIT_3
+                var tests = await aggregator.RunAsync(CreateTests, Array.Empty<IXunitTest>());
+                return await XunitTestCaseRunner.Instance.Run(this, tests, messageBus, aggregator, cancellationTokenSource, displayName, SkipReason, ExplicitOption.Off, constructorArguments);
+#else
+                return await new XunitTestCaseRunner(this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource).RunAsync();
+#endif
             }
             else
             {
-                runner = new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey, this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource);
+#if USES_XUNIT_3
+                throw new NotImplementedException("TODO");
+#else
+                return await new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey, this, displayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource).RunAsync();
+#endif
             }
-
-            return runner.RunAsync();
         }
+#endif
     }
 }

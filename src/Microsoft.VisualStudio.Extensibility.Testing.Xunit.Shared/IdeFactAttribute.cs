@@ -5,9 +5,17 @@ namespace Xunit
 {
     using System;
     using Xunit.Sdk;
+    using Xunit.Threading;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+#if USES_XUNIT_3
+    [XunitTestCaseDiscoverer(typeof(IdeFactDiscoverer))]
+#else
     [XunitTestCaseDiscoverer("Xunit.Threading.IdeFactDiscoverer", "Microsoft.VisualStudio.Extensibility.Testing.Xunit")]
+#endif
     public class IdeFactAttribute : FactAttribute, IIdeSettingsAttribute
     {
         public IdeFactAttribute()

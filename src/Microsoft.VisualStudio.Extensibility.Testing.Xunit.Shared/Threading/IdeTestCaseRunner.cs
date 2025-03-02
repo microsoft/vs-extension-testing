@@ -8,12 +8,22 @@ namespace Xunit.Threading
     using System.Diagnostics;
     using System.Reflection;
     using System.Threading;
+    using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
-    public sealed class IdeTestCaseRunner : XunitTestCaseRunner
+    public sealed class IdeTestCaseRunner
+#if !USES_XUNIT_3
+        : XunitTestCaseRunner
+#endif
     {
+#if !USES_XUNIT_3
         public IdeTestCaseRunner(
             WpfTestSharedData sharedData,
             VisualStudioInstanceKey visualStudioInstanceKey,
@@ -40,7 +50,27 @@ namespace Xunit.Threading
         {
             get;
         }
+#endif
 
+#if USES_XUNIT_3
+        internal static async Task<RunSummary> RunAsync(WpfTestSharedData sharedData, IXunitTest test, IMessageBus messageBus, object[] constructorArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        {
+            if (Process.GetCurrentProcess().ProcessName == "devenv")
+            {
+                // We are already running inside Visual Studio
+                // TODO: Verify version under test
+                return await new InProcessIdeTestRunner().Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+            }
+            else if (sharedData.Exception is not null)
+            {
+                return await new ErrorReportingIdeTestRunner(sharedData.Exception).Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+            }
+            else
+            {
+                throw new NotSupportedException($"{nameof(IdeFactAttribute)} can only be used with the {nameof(IdeTestFramework)} test framework");
+            }
+        }
+#else
         protected override XunitTestRunner CreateTestRunner(ITest test, IMessageBus messageBus, Type testClass, object?[] constructorArguments, MethodInfo testMethod, object?[]? testMethodArguments, string skipReason, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
         {
             if (Process.GetCurrentProcess().ProcessName == "devenv")
@@ -58,5 +88,6 @@ namespace Xunit.Threading
                 throw new NotSupportedException($"{nameof(IdeFactAttribute)} can only be used with the {nameof(IdeTestFramework)} test framework");
             }
         }
+#endif
     }
 }

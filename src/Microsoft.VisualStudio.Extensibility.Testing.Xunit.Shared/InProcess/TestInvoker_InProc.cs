@@ -10,10 +10,15 @@ namespace Xunit.InProcess
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Threading;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
     using Xunit.Sdk;
     using Xunit.Threading;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
 
     internal class TestInvoker_InProc : InProcComponent
     {
@@ -30,13 +35,36 @@ namespace Xunit.InProcess
             var assembly = Assembly.LoadFrom(codeBase);
         }
 
-        public InProcessIdeTestAssemblyRunner CreateTestAssemblyRunner(ITestAssembly testAssembly, IXunitTestCase[] testCases, IMessageSink diagnosticMessageSink, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
+        public InProcessIdeTestAssemblyRunner CreateTestAssemblyRunner(
+#if USES_XUNIT_3
+            IXunitTestAssembly testAssembly,
+#else
+            ITestAssembly testAssembly,
+#endif
+            IXunitTestCase[] testCases,
+#if !USES_XUNIT_3
+            IMessageSink diagnosticMessageSink,
+#endif
+            IMessageSink executionMessageSink,
+            ITestFrameworkExecutionOptions executionOptions)
         {
-            return new InProcessIdeTestAssemblyRunner(testAssembly, testCases, diagnosticMessageSink, executionMessageSink, executionOptions);
+            return new InProcessIdeTestAssemblyRunner(
+                testAssembly,
+                testCases,
+#if !USES_XUNIT_3
+                diagnosticMessageSink,
+#endif
+                executionMessageSink,
+                executionOptions);
         }
 
+#if !USES_XUNIT_3 // potentially dead code, even for xUnit 2? - https://github.com/microsoft/vs-extension-testing/pull/177
         public Tuple<decimal, Exception> InvokeTest(
+#if USES_XUNIT_3
+            IXunitTest test,
+#else
             ITest test,
+#endif
             IMessageBus messageBus,
             Type testClass,
             object?[]? constructorArguments,
@@ -79,5 +107,6 @@ namespace Xunit.InProcess
 
             return Tuple.Create(result, aggregator.ToException());
         }
+#endif
     }
 }
