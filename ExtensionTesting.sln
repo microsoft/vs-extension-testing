@@ -68,6 +68,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3", "src\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.csproj", "{076FCA31-75AF-4DE5-BD54-A3D057D8F2BD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.IntegrationTests", "src\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.IntegrationTests\Microsoft.VisualStudio.Extensibility.Testing.Xunit.v3.IntegrationTests.csproj", "{073D4E58-1EA3-463B-BE40-F636B3F98593}"
+	ProjectSection(ProjectDependencies) = postProject
+		{25E61E07-E449-4ABB-A197-BD5C8EE3347F} = {25E61E07-E449-4ABB-A197-BD5C8EE3347F}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
