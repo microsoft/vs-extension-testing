@@ -6,6 +6,7 @@ namespace Xunit.Harness
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
@@ -420,11 +421,7 @@ namespace Xunit.Harness
 #endif
 
 #if USES_XUNIT_3
-                            // TODO: Reminder to self. This is where things go wrong currently.
-                            // Here, TestContext.Current is correct, but once we go to RunTestCollection (in-process), we lose it.
-                            // The first thought is to pass it through a MarshalByRefObject, and set it again inside RunTestCollection.
-                            // However, xUnit doesn't seem to allow setting TestContext.Current.
-                            var result = runner.RunTestCollection();
+                            var result = runner.RunTestCollection(new TestContextWrapper(TestContext.Current));
 #else
                             var result = runner.RunTestCollection(ipcMessageBus, testCollection, testCases.ToArray());
 #endif
@@ -914,4 +911,115 @@ namespace Xunit.Harness
         }
 #endif
     }
+
+#if USES_XUNIT_3
+    // TestContext.Current is lost when going in-process.
+    // This class helps marshalling the TestContext from the original process to devenv to restore it there.
+#pragma warning disable SA1402 // File may only contain a single type
+    public sealed class TestContextWrapper : LongLivedMarshalByRefObject, ITestContext
+#pragma warning restore SA1402 // File may only contain a single type
+    {
+        private readonly ITestContext _testContext;
+
+        public TestContextWrapper(ITestContext testContext)
+            => _testContext = testContext;
+
+        public IReadOnlyDictionary<string, TestAttachment>? Attachments => _testContext.Attachments;
+
+        public CancellationToken CancellationToken => _testContext.CancellationToken;
+
+        public Dictionary<string, object?> KeyValueStorage => _testContext.KeyValueStorage;
+
+        public TestPipelineStage PipelineStage => _testContext.PipelineStage;
+
+        public ITest? Test => _testContext.Test;
+
+        public ITestAssembly? TestAssembly => _testContext.TestAssembly;
+
+        // It has to be public for remoting.
+        // But intended to be used internally.
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public Assembly? Assembly => (TestAssembly as XunitTestAssembly)?.Assembly;
+
+        public ITestCollectionOrderer? TestCollectionOrderer => (TestAssembly as XunitTestAssembly)?.TestCollectionOrderer;
+
+        public TestEngineStatus? TestAssemblyStatus => _testContext.TestAssemblyStatus;
+
+        public ITestCase? TestCase => _testContext.TestCase;
+
+        public TestEngineStatus? TestCaseStatus => _testContext.TestCaseStatus;
+
+        public ITestClass? TestClass => _testContext.TestClass;
+
+        public object? TestClassInstance => _testContext.TestClassInstance;
+
+        public TestEngineStatus? TestClassStatus => _testContext.TestClassStatus;
+
+        public ITestCollection? TestCollection => _testContext.TestCollection;
+
+        public TestEngineStatus? TestCollectionStatus => _testContext.TestCollectionStatus;
+
+        public ITestMethod? TestMethod => _testContext.TestMethod;
+
+        public TestEngineStatus? TestMethodStatus => _testContext.TestMethodStatus;
+
+        public ITestOutputHelper? TestOutputHelper => _testContext.TestOutputHelper;
+
+        public TestResultState? TestState => _testContext.TestState;
+
+        public TestEngineStatus? TestStatus => _testContext.TestStatus;
+
+        public IReadOnlyList<string>? Warnings => _testContext.Warnings;
+
+        public void AddAttachment(string name, string value)
+        {
+            _testContext.AddAttachment(name, value);
+        }
+
+        public void AddAttachment(string name, byte[] value, string mediaType = "application/octet-stream")
+        {
+            _testContext.AddAttachment(name, value, mediaType);
+        }
+
+        public void AddWarning(string message)
+        {
+            _testContext.AddWarning(message);
+        }
+
+        public void CancelCurrentTest()
+        {
+            _testContext.CancelCurrentTest();
+        }
+
+        public ValueTask<object?> GetFixture(Type fixtureType)
+        {
+            return _testContext.GetFixture(fixtureType);
+        }
+
+        public void SendDiagnosticMessage(string message)
+        {
+            _testContext.SendDiagnosticMessage(message);
+        }
+
+        public void SendDiagnosticMessage(string format, object? arg0)
+        {
+            _testContext.SendDiagnosticMessage(format, arg0);
+        }
+
+        public void SendDiagnosticMessage(string format, object? arg0, object? arg1)
+        {
+            _testContext.SendDiagnosticMessage(format, arg0, arg1);
+        }
+
+        public void SendDiagnosticMessage(string format, object? arg0, object? arg1, object? arg2)
+        {
+            _testContext.SendDiagnosticMessage(format, arg0, arg1, arg2);
+        }
+
+        public void SendDiagnosticMessage(string format, params object?[] args)
+        {
+            _testContext.SendDiagnosticMessage(format, args);
+        }
+    }
+#endif
 }

@@ -76,7 +76,7 @@ namespace Xunit.Harness
             }
         }
 
-        private sealed class TestCollectionOrdererWrapper : ITestCollectionOrderer
+        private sealed class TestCollectionOrdererWrapper : MarshalByRefObject, ITestCollectionOrderer
         {
             public TestCollectionOrdererWrapper(ITestCollectionOrderer underlying)
             {

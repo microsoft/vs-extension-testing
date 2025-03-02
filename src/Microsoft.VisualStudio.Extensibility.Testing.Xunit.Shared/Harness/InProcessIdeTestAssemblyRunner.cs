@@ -9,6 +9,7 @@ namespace Xunit.Harness
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.VisualStudio.Experimentation;
     using Xunit;
 #if !USES_XUNIT_3
     using Xunit.Abstractions;
@@ -89,7 +90,7 @@ namespace Xunit.Harness
         }
 
 #if USES_XUNIT_3
-        public Tuple<int, int, int, decimal> RunTestCollection()
+        public Tuple<int, int, int, decimal> RunTestCollection(TestContextWrapper wrapper)
 #else
         // NOTE: These parameters are unused.
         // However, for backward compatibility, we keep them as this method is public.
@@ -97,6 +98,9 @@ namespace Xunit.Harness
         public Tuple<int, int, int, decimal> RunTestCollection(IMessageBus messageBus, ITestCollection testCollection, IXunitTestCase[] testCases)
 #endif
         {
+#pragma warning disable CA1062 // Validate arguments of public methods
+            RestoreFromWrapper(wrapper);
+#pragma warning restore CA1062 // Validate arguments of public methods
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
@@ -132,6 +136,52 @@ namespace Xunit.Harness
             {
                 _testAssemblyRunner.Dispose();
             }
+        }
+#endif
+
+#if USES_XUNIT_3
+        private static void RestoreFromWrapper(TestContextWrapper wrapper)
+        {
+            if (wrapper.PipelineStage == TestPipelineStage.TestAssemblyExecution)
+            {
+                // NOTE: We cannot simply call SetForTestAssembly here.
+                // SetForTestAssembly will attempt to call TestContext.CurrentInternal.KeyValueStorage which will throw.
+                // To hack around that, we call SetForInitialization first, which will create a TestContext with empty dictionary.
+                // Then, we copy from the existing dictionary to the new one (in most cases (maybe always?), _keyValueStorage is going to be empty).
+                // Then, we call SetForTestAssembly. At this point, KeyValueStorage will not throw.
+                TestContext.SetForInitialization(null, false, false);
+                foreach (var entry in wrapper.KeyValueStorage)
+                {
+                    TestContext.Current.KeyValueStorage[entry.Key] = entry.Value;
+                }
+
+                // If wrapper.Assembly is non-null, that means it's our own XUnit3TestAssembly.
+                // XUnit3TestAssembly is not serializable, so create InProcessTestAssembly that is equivalent.
+                var testAssembly = wrapper.Assembly is { } assembly
+                    ? new InProcessTestAssembly(assembly, wrapper.TestCollectionOrderer)
+                    : wrapper.TestAssembly;
+
+                TestContext.SetForTestAssembly(testAssembly!, wrapper.TestAssemblyStatus!.Value, default(CancellationToken));
+            }
+            else
+            {
+                // If we hit this, add more conditions for different stages as needed.
+                throw new InvalidOperationException($"Unexpected PipelineStage '{wrapper.PipelineStage}'.");
+            }
+        }
+
+        private sealed class InProcessTestAssembly : XunitTestAssembly, IXunitTestAssembly
+        {
+            private readonly ITestCollectionOrderer? _testCollectionOrderer;
+
+            public InProcessTestAssembly(Assembly assembly, ITestCollectionOrderer? testCollectionOrderer)
+                : base(assembly, configFileName: null, assembly.GetName().Version)
+            {
+                _testCollectionOrderer = testCollectionOrderer;
+            }
+
+            ITestCollectionOrderer? IXunitTestAssembly.TestCollectionOrderer
+                => _testCollectionOrderer;
         }
 #endif
     }
