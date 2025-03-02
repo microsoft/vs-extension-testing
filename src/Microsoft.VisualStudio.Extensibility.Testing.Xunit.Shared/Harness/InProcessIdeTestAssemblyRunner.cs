@@ -9,7 +9,6 @@ namespace Xunit.Harness
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.VisualStudio.Experimentation;
     using Xunit;
 #if !USES_XUNIT_3
     using Xunit.Abstractions;
