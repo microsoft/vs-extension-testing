@@ -417,6 +417,10 @@ namespace Xunit.Harness
                             var ipcMessageBus = new IpcMessageBus(messageBus);
                             marshalledObjects.Add(ipcMessageBus);
 
+#if USES_XUNIT_3
+                            testCollection = new TestCollectionWrapper(testCollection);
+#endif
+
                             var result = runner.RunTestCollection(ipcMessageBus, testCollection, testCases.ToArray());
                             var runSummary = new RunSummary
                             {
@@ -904,4 +908,35 @@ namespace Xunit.Harness
         }
 #endif
     }
+
+#if USES_XUNIT_3
+    // xUnit v3 implementation of ITestCollection isn't serializable.
+    // Wrapping in a MarshalByRefObject to allow it to be passed in process.
+#pragma warning disable SA1402 // File may only contain a single type
+#pragma warning disable SA1649 // File name should match first type name
+    internal sealed class TestCollectionWrapper : LongLivedMarshalByRefObject, ITestCollection
+#pragma warning restore SA1649 // File name should match first type name
+#pragma warning restore SA1402 // File may only contain a single type
+    {
+        private readonly ITestCollection _testCollection;
+
+        public TestCollectionWrapper(ITestCollection testCollection)
+            => _testCollection = testCollection;
+
+        public ITestAssembly TestAssembly
+            => _testCollection.TestAssembly;
+
+        public string? TestCollectionClassName
+            => _testCollection.TestCollectionClassName;
+
+        public string TestCollectionDisplayName
+            => _testCollection.TestCollectionDisplayName;
+
+        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits
+            => _testCollection.Traits;
+
+        public string UniqueID
+            => _testCollection.UniqueID;
+    }
+#endif
 }
