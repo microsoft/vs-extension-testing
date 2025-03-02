@@ -88,7 +88,14 @@ namespace Xunit.Harness
 #endif
         }
 
+#if USES_XUNIT_3
+        public Tuple<int, int, int, decimal> RunTestCollection()
+#else
+        // NOTE: These parameters are unused.
+        // However, for backward compatibility, we keep them as this method is public.
+        // TODO: For xUnit 2, introduce an internal parameterless overload to cleanup our internal callsites.
         public Tuple<int, int, int, decimal> RunTestCollection(IMessageBus messageBus, ITestCollection testCollection, IXunitTestCase[] testCases)
+#endif
         {
             using (var cancellationTokenSource = new CancellationTokenSource())
             {

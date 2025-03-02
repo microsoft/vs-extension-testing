@@ -414,14 +414,20 @@ namespace Xunit.Harness
                         {
                             marshalledObjects.Add(runner);
 
+#if !USES_XUNIT_3
                             var ipcMessageBus = new IpcMessageBus(messageBus);
                             marshalledObjects.Add(ipcMessageBus);
-
-#if USES_XUNIT_3
-                            testCollection = new TestCollectionWrapper(testCollection);
 #endif
 
+#if USES_XUNIT_3
+                            // TODO: Reminder to self. This is where things go wrong currently.
+                            // Here, TestContext.Current is correct, but once we go to RunTestCollection (in-process), we lose it.
+                            // The first thought is to pass it through a MarshalByRefObject, and set it again inside RunTestCollection.
+                            // However, xUnit doesn't seem to allow setting TestContext.Current.
+                            var result = runner.RunTestCollection();
+#else
                             var result = runner.RunTestCollection(ipcMessageBus, testCollection, testCases.ToArray());
+#endif
                             var runSummary = new RunSummary
                             {
                                 Total = result.Item1,
@@ -908,35 +914,4 @@ namespace Xunit.Harness
         }
 #endif
     }
-
-#if USES_XUNIT_3
-    // xUnit v3 implementation of ITestCollection isn't serializable.
-    // Wrapping in a MarshalByRefObject to allow it to be passed in process.
-#pragma warning disable SA1402 // File may only contain a single type
-#pragma warning disable SA1649 // File name should match first type name
-    internal sealed class TestCollectionWrapper : LongLivedMarshalByRefObject, ITestCollection
-#pragma warning restore SA1649 // File name should match first type name
-#pragma warning restore SA1402 // File may only contain a single type
-    {
-        private readonly ITestCollection _testCollection;
-
-        public TestCollectionWrapper(ITestCollection testCollection)
-            => _testCollection = testCollection;
-
-        public ITestAssembly TestAssembly
-            => _testCollection.TestAssembly;
-
-        public string? TestCollectionClassName
-            => _testCollection.TestCollectionClassName;
-
-        public string TestCollectionDisplayName
-            => _testCollection.TestCollectionDisplayName;
-
-        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits
-            => _testCollection.Traits;
-
-        public string UniqueID
-            => _testCollection.UniqueID;
-    }
-#endif
 }
