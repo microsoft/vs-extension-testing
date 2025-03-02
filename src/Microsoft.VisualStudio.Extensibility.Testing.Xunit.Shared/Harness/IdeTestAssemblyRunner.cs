@@ -415,15 +415,10 @@ namespace Xunit.Harness
                         {
                             marshalledObjects.Add(runner);
 
-#if !USES_XUNIT_3
-                            var ipcMessageBus = new IpcMessageBus(messageBus);
-                            marshalledObjects.Add(ipcMessageBus);
-#endif
-
 #if USES_XUNIT_3
                             var result = runner.RunTestCollection(new TestContextWrapper(TestContext.Current));
 #else
-                            var result = runner.RunTestCollection(ipcMessageBus, testCollection, testCases.ToArray());
+                            var result = runner.RunTestCollection();
 #endif
                             var runSummary = new RunSummary
                             {
@@ -762,23 +757,6 @@ namespace Xunit.Harness
             {
                 return null;
             }
-        }
-
-        private class IpcMessageBus : MarshalByRefObject, IMessageBus
-        {
-            private readonly IMessageBus _messageBus;
-
-            public IpcMessageBus(IMessageBus messageBus)
-            {
-                _messageBus = messageBus;
-            }
-
-            public void Dispose() => _messageBus.Dispose();
-
-            public bool QueueMessage(IMessageSinkMessage message) => _messageBus.QueueMessage(message);
-
-            // The life of this object is managed explicitly
-            public override object? InitializeLifetimeService() => null;
         }
 
         private class IpcTestAssembly : LongLivedMarshalByRefObject,

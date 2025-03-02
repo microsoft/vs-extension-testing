@@ -89,18 +89,25 @@ namespace Xunit.Harness
 #endif
         }
 
+#if !USES_XUNIT_3
+        // NOTE: These parameters are unused.
+        // However, for backward compatibility, we keep them as this method is public.
+        public Tuple<int, int, int, decimal> RunTestCollection(IMessageBus messageBus, ITestCollection testCollection, IXunitTestCase[] testCases)
+            => RunTestCollection()
+#endif
+
 #if USES_XUNIT_3
         public Tuple<int, int, int, decimal> RunTestCollection(TestContextWrapper wrapper)
 #else
-        // NOTE: These parameters are unused.
-        // However, for backward compatibility, we keep them as this method is public.
-        // TODO: For xUnit 2, introduce an internal parameterless overload to cleanup our internal callsites.
-        public Tuple<int, int, int, decimal> RunTestCollection(IMessageBus messageBus, ITestCollection testCollection, IXunitTestCase[] testCases)
+        public Tuple<int, int, int, decimal> RunTestCollection()
 #endif
         {
+#if USES_XUNIT_3
 #pragma warning disable CA1062 // Validate arguments of public methods
             RestoreFromWrapper(wrapper);
 #pragma warning restore CA1062 // Validate arguments of public methods
+#endif
+
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
