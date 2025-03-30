@@ -9,6 +9,7 @@ namespace Xunit.Harness
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
+    using System.Threading;
     using System.Threading.Tasks;
     using Xunit;
 #if !USES_XUNIT_3
@@ -36,7 +37,7 @@ namespace Xunit.Harness
 #endif
 
 #if USES_XUNIT_3
-        public override async ValueTask RunTestCases(IReadOnlyCollection<IXunitTestCase> testCases, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
+        public override async ValueTask RunTestCases(IReadOnlyCollection<IXunitTestCase> testCases, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions, CancellationToken cancellationToken)
 #else
         [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Follows pattern expected by Xunit framework.")]
         protected override async void RunTestCases(IEnumerable<IXunitTestCase> testCases, IMessageSink executionMessageSink, ITestFrameworkExecutionOptions executionOptions)
@@ -45,7 +46,7 @@ namespace Xunit.Harness
             try
             {
 #if USES_XUNIT_3
-                await new IdeTestAssemblyRunner(executionMessageSink, executionOptions).Run(TestAssembly, testCases, executionMessageSink, executionOptions);
+                await new IdeTestAssemblyRunner(executionMessageSink, executionOptions).Run(TestAssembly, testCases, executionMessageSink, executionOptions, cancellationToken);
 #else
                 using (var assemblyRunner = new IdeTestAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSink, executionOptions))
                 {
