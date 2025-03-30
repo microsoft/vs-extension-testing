@@ -55,6 +55,16 @@ namespace Xunit.InProcess
                     return Assembly.LoadFrom(path);
                 }
 
+#if USES_XUNIT_3
+                // For xUnit 3, InProcessIdeTestAssemblyRunner.RestoreFromWrapper will attempt to resolve the test assembly.
+                // This is a .NET Framework executable.
+                path = Path.Combine(directory, new AssemblyName(e.Name).Name + ".exe");
+                if (File.Exists(path))
+                {
+                    return Assembly.LoadFrom(path);
+                }
+#endif
+
                 return null;
             };
         }

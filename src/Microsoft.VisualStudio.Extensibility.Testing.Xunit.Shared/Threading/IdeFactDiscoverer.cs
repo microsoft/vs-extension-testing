@@ -6,61 +6,136 @@ namespace Xunit.Threading
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Runtime.CompilerServices;
+    using System.Threading.Tasks;
+#if !USES_XUNIT_3
     using Xunit.Abstractions;
+#endif
     using Xunit.Harness;
+#if USES_XUNIT_3
+    using Xunit.Internal;
+#endif
     using Xunit.Sdk;
+#if USES_XUNIT_3
+    using Xunit.v3;
+#endif
+
+#if USES_XUNIT_3
+    using IdeSettingsAttributeAbstractedType = Xunit.IdeSettingsAttribute;
+    using IFactAttributeType = Xunit.v3.IFactAttribute;
+    using ITestMethodType = Xunit.v3.IXunitTestMethod;
+#else
+    using IdeSettingsAttributeAbstractedType = Xunit.Abstractions.IAttributeInfo;
+    using IFactAttributeType = Xunit.Abstractions.IAttributeInfo;
+    using ITestMethodType = Xunit.Abstractions.ITestMethod;
+#endif
 
     public class IdeFactDiscoverer : IXunitTestCaseDiscoverer
     {
+#if !USES_XUNIT_3
         private readonly IMessageSink _diagnosticMessageSink;
 
         public IdeFactDiscoverer(IMessageSink diagnosticMessageSink)
         {
             _diagnosticMessageSink = diagnosticMessageSink;
         }
+#endif
 
-        public IEnumerable<IXunitTestCase> Discover(ITestFrameworkDiscoveryOptions discoveryOptions, ITestMethod testMethod, IAttributeInfo factAttribute)
+        public
+#if USES_XUNIT_3
+            ValueTask<IReadOnlyCollection<IXunitTestCase>>
+#else
+            IEnumerable<IXunitTestCase>
+#endif
+            Discover(ITestFrameworkDiscoveryOptions discoveryOptions, ITestMethodType testMethod, IFactAttributeType factAttribute)
         {
             if (testMethod is null)
             {
                 throw new ArgumentNullException(nameof(testMethod));
             }
 
+            var testCases = new List<IXunitTestCase>();
+
+#if USES_XUNIT_3
+            var details = TestIntrospectionHelper.GetTestCaseDetails(discoveryOptions, testMethod, factAttribute);
+#endif
             if (!testMethod.Method.GetParameters().Any())
             {
                 if (!testMethod.Method.IsGenericMethodDefinition)
                 {
                     foreach (var supportedInstance in GetSupportedInstances(testMethod, factAttribute))
                     {
-                        yield return new IdeTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance);
+#if USES_XUNIT_3
+                        testCases.Add(new IdeTestCase(
+                            details.ResolvedTestMethod,
+                            details.TestCaseDisplayName,
+                            details.UniqueID,
+                            details.Explicit,
+                            supportedInstance,
+                            details.SkipExceptions,
+                            details.SkipReason,
+                            details.SkipType,
+                            details.SkipUnless,
+                            details.SkipWhen,
+                            testMethod.Traits.ToReadWrite(StringComparer.OrdinalIgnoreCase),
+                            timeout: details.Timeout));
+#else
+                        testCases.Add(new IdeTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, supportedInstance));
+#endif
+#if USES_XUNIT_3
+                        if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, supportedInstance) is { } instanceTestCase)
+#else
                         if (IdeInstanceTestCase.TryCreateNewInstanceForFramework(discoveryOptions, _diagnosticMessageSink, supportedInstance) is { } instanceTestCase)
+#endif
                         {
-                            yield return instanceTestCase;
+                            testCases.Add(instanceTestCase);
                         }
                     }
                 }
                 else
                 {
-                    yield return new ExecutionErrorTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, "[IdeFact] methods are not allowed to be generic.");
+#if USES_XUNIT_3
+                    testCases.Add(new ExecutionErrorTestCase(testMethod, details.TestCaseDisplayName, details.UniqueID, "[IdeFact] methods are not allowed to be generic."));
+#else
+                    testCases.Add(new ExecutionErrorTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, "[IdeFact] methods are not allowed to be generic."));
+#endif
                 }
             }
             else
             {
-                yield return new ExecutionErrorTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, "[IdeFact] methods are not allowed to have parameters. Did you mean to use [IdeTheory]?");
+#if USES_XUNIT_3
+                testCases.Add(new ExecutionErrorTestCase(testMethod, details.TestCaseDisplayName, details.UniqueID, "[IdeFact] methods are not allowed to have parameters. Did you mean to use [IdeTheory]?"));
+#else
+                testCases.Add(new ExecutionErrorTestCase(_diagnosticMessageSink, discoveryOptions.MethodDisplayOrDefault(), discoveryOptions.MethodDisplayOptionsOrDefault(), testMethod, "[IdeFact] methods are not allowed to have parameters. Did you mean to use [IdeTheory]?"));
+#endif
             }
+
+#if USES_XUNIT_3
+            return new ValueTask<IReadOnlyCollection<IXunitTestCase>>(testCases);
+#else
+            return testCases;
+#endif
         }
 
-        internal static ITestMethod CreateVisualStudioTestMethod(VisualStudioInstanceKey supportedInstance)
+        internal static ITestMethodType CreateVisualStudioTestMethod(VisualStudioInstanceKey supportedInstance)
         {
+#if USES_XUNIT_3
+            var testAssembly = new XunitTestAssembly(typeof(Instances).Assembly);
+            var testCollection = new XunitTestCollection(testAssembly, collectionDefinition: null, disableParallelization: true, nameof(Instances));
+            var testClass = new XunitTestClass(typeof(Instances), testCollection);
+            var testMethod = testClass.Methods.Single(method => method.Name == nameof(Instances.VisualStudio));
+            return new XunitTestMethod(testClass, testMethod, Array.Empty<object?>());
+#else
             var testAssembly = new TestAssembly(new ReflectionAssemblyInfo(typeof(Instances).Assembly));
             var testCollection = new TestCollection(testAssembly, collectionDefinition: null, nameof(Instances));
             var testClass = new TestClass(testCollection, new ReflectionTypeInfo(typeof(Instances)));
             var testMethod = testClass.Class.GetMethods(false).Single(method => method.Name == nameof(Instances.VisualStudio));
             return new TestMethod(testClass, testMethod);
+#endif
         }
 
-        internal static IEnumerable<VisualStudioInstanceKey> GetSupportedInstances(ITestMethod testMethod, IAttributeInfo factAttribute)
+        internal static IEnumerable<VisualStudioInstanceKey> GetSupportedInstances(ITestMethodType testMethod, IFactAttributeType factAttribute)
         {
             var rootSuffix = GetRootSuffix(testMethod, factAttribute);
             var maxAttempts = GetMaxAttempts(testMethod, factAttribute);
@@ -69,35 +144,43 @@ namespace Xunit.Threading
                 .Select(version => new VisualStudioInstanceKey(version, rootSuffix, maxAttempts, environmentVariables));
         }
 
-        private static string GetRootSuffix(ITestMethod testMethod, IAttributeInfo factAttribute)
+        private static string GetRootSuffix(ITestMethodType testMethod, IFactAttributeType factAttribute)
         {
             return GetRootSuffix(factAttribute, GetSettingsAttributes(testMethod).ToArray());
         }
 
-        private static int GetMaxAttempts(ITestMethod testMethod, IAttributeInfo factAttribute)
+        private static int GetMaxAttempts(ITestMethodType testMethod, IFactAttributeType factAttribute)
         {
             return GetMaxAttempts(factAttribute, GetSettingsAttributes(testMethod).ToArray());
         }
 
-        private static string[] GetEnvironmentVariables(ITestMethod testMethod, IAttributeInfo factAttribute)
+        private static string[] GetEnvironmentVariables(ITestMethodType testMethod, IFactAttributeType factAttribute)
         {
             return GetEnvironmentVariables(factAttribute, GetSettingsAttributes(testMethod).ToArray());
         }
 
-        private static IEnumerable<IAttributeInfo> GetSettingsAttributes(ITestMethod testMethod)
+        private static IEnumerable<IdeSettingsAttributeAbstractedType> GetSettingsAttributes(ITestMethodType testMethod)
         {
+#if USES_XUNIT_3
+            foreach (var attributeData in testMethod.Method.GetCustomAttributes(true).OfType<IdeSettingsAttributeAbstractedType>())
+#else
             foreach (var attributeData in testMethod.Method.GetCustomAttributes(typeof(IdeSettingsAttribute)))
+#endif
             {
                 yield return attributeData;
             }
 
+#if USES_XUNIT_3
+            foreach (var attributeData in testMethod.TestClass.Class.GetCustomAttributes(true).OfType<IdeSettingsAttributeAbstractedType>())
+#else
             foreach (var attributeData in testMethod.TestClass.Class.GetCustomAttributes(typeof(IdeSettingsAttribute)))
+#endif
             {
                 yield return attributeData;
             }
         }
 
-        private static IEnumerable<VisualStudioVersion> GetSupportedVersions(IAttributeInfo factAttribute, IAttributeInfo[] settingsAttributes)
+        private static IEnumerable<VisualStudioVersion> GetSupportedVersions(IFactAttributeType factAttribute, IdeSettingsAttributeAbstractedType[] settingsAttributes)
         {
             var minVersion = GetNamedArgument(
                 factAttribute,
@@ -131,7 +214,7 @@ namespace Xunit.Threading
             }
         }
 
-        private static string GetRootSuffix(IAttributeInfo factAttribute, IAttributeInfo[] settingsAttributes)
+        private static string GetRootSuffix(IFactAttributeType factAttribute, IdeSettingsAttributeAbstractedType[] settingsAttributes)
         {
             return GetNamedArgument(
                 factAttribute,
@@ -141,7 +224,7 @@ namespace Xunit.Threading
                 defaultValue: "Exp");
         }
 
-        private static int GetMaxAttempts(IAttributeInfo factAttribute, IAttributeInfo[] settingsAttributes)
+        private static int GetMaxAttempts(IFactAttributeType factAttribute, IdeSettingsAttributeAbstractedType[] settingsAttributes)
         {
             return GetNamedArgument(
                 factAttribute,
@@ -151,7 +234,7 @@ namespace Xunit.Threading
                 defaultValue: 1);
         }
 
-        private static string[] GetEnvironmentVariables(IAttributeInfo factAttribute, IAttributeInfo[] settingsAttributes)
+        private static string[] GetEnvironmentVariables(IFactAttributeType factAttribute, IdeSettingsAttributeAbstractedType[] settingsAttributes)
         {
             return GetNamedArgument(
                 factAttribute,
@@ -187,7 +270,7 @@ namespace Xunit.Threading
             return set.ToArray();
         }
 
-        private static TValue GetNamedArgument<TValue>(IAttributeInfo factAttribute, IAttributeInfo[] settingsAttributes, string argumentName, Func<TValue, bool> isValidValue, TValue defaultValue)
+        private static TValue GetNamedArgument<TValue>(IFactAttributeType factAttribute, IdeSettingsAttributeAbstractedType[] settingsAttributes, string argumentName, Func<TValue, bool> isValidValue, TValue defaultValue)
         {
             return GetNamedArgument(
                 factAttribute,
@@ -198,10 +281,20 @@ namespace Xunit.Threading
                 defaultValue);
         }
 
-        private static TValue GetNamedArgument<TValue>(IAttributeInfo factAttribute, IAttributeInfo[] settingsAttributes, string argumentName, Func<TValue, bool> isValidValue, Func<TValue, TValue, TValue>? merge, TValue defaultValue)
+        private static TValue GetNamedArgument<TValue>(IFactAttributeType factAttribute, IdeSettingsAttributeAbstractedType[] settingsAttributes, string argumentName, Func<TValue, bool> isValidValue, Func<TValue, TValue, TValue>? merge, TValue defaultValue)
         {
             StrongBox<TValue>? result = null;
-            if (TryGetNamedArgument(factAttribute, argumentName, isValidValue, out var value))
+#pragma warning disable SA1114 // Parameter list should follow declaration
+#pragma warning disable SA1003 // Symbols should be spaced correctly
+            if (TryGetNamedArgument(
+#if USES_XUNIT_3
+                (Attribute)factAttribute,
+#else
+                factAttribute,
+#endif
+                argumentName,
+                isValidValue,
+                out var value))
             {
                 if (merge is null)
                 {
@@ -210,6 +303,8 @@ namespace Xunit.Threading
 
                 result = new StrongBox<TValue>(value);
             }
+#pragma warning restore SA1003 // Symbols should be spaced correctly
+#pragma warning restore SA1114 // Parameter list should follow declaration
 
             foreach (var attribute in settingsAttributes)
             {
@@ -239,11 +334,36 @@ namespace Xunit.Threading
 
             return defaultValue;
 
+#if USES_XUNIT_3
+            static bool TryGetNamedArgument(Attribute attribute, string argumentName, Func<TValue, bool> isValidValue, out TValue value)
+            {
+                foreach (var propInfo in attribute.GetType().GetRuntimeProperties())
+                {
+                    if (propInfo.Name == argumentName)
+                    {
+                        value = (TValue)propInfo.GetValue(attribute);
+                        return isValidValue(value);
+                    }
+                }
+
+                foreach (var fieldInfo in attribute.GetType().GetRuntimeFields())
+                {
+                    if (fieldInfo.Name == argumentName)
+                    {
+                        value = (TValue)fieldInfo.GetValue(attribute);
+                        return isValidValue(value);
+                    }
+                }
+
+                throw new ArgumentException($"Could not find property or field named '{argumentName}' on instance of '{attribute.GetType().FullName}'", nameof(argumentName));
+            }
+#else
             static bool TryGetNamedArgument(IAttributeInfo attribute, string argumentName, Func<TValue, bool> isValidValue, out TValue value)
             {
                 value = attribute.GetNamedArgument<TValue>(argumentName);
                 return isValidValue(value);
             }
+#endif
         }
 
         private class KeyOnlyComparerIgnoreCase : IEqualityComparer<string?>
