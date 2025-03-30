@@ -120,6 +120,9 @@ namespace Xunit.OutOfProcess
         public string UniqueID
             => _testCase.UniqueID;
 
+        public Type[]? SkipExceptions
+            => _testCase.SkipExceptions;
+
         ITestClass? ITestCase.TestClass
             => ((ITestCase)_testCase).TestClass;
 
