@@ -48,6 +48,7 @@ namespace Xunit.Threading
             string uniqueID,
             bool @explicit,
             VisualStudioInstanceKey visualStudioInstanceKey,
+            Type[]? skipExceptions = null,
             string? skipReason = null,
             Type? skipType = null,
             string? skipUnless = null,
@@ -57,7 +58,7 @@ namespace Xunit.Threading
             string? sourceFilePath = null,
             int? sourceLineNumber = null,
             int? timeout = null)
-            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, includeRootSuffixInDisplayName: true, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+            : base(testMethod, testCaseDisplayName, uniqueID, @explicit, visualStudioInstanceKey, includeRootSuffixInDisplayName: true, skipExceptions, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
         {
         }
 #else
@@ -90,6 +91,7 @@ namespace Xunit.Threading
                 details.UniqueID,
                 details.Explicit,
                 visualStudioInstanceKey,
+                details.SkipExceptions,
                 details.SkipReason,
                 details.SkipType,
                 details.SkipUnless,

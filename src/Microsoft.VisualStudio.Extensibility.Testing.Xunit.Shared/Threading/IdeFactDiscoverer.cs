@@ -73,6 +73,7 @@ namespace Xunit.Threading
                             details.UniqueID,
                             details.Explicit,
                             supportedInstance,
+                            details.SkipExceptions,
                             details.SkipReason,
                             details.SkipType,
                             details.SkipUnless,

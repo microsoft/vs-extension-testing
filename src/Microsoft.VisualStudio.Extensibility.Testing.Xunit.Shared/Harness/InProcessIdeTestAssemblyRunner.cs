@@ -53,7 +53,7 @@ namespace Xunit.Harness
                 if (testCase is IdeTestCase ideTestCase)
                 {
 #if USES_XUNIT_3
-                    return new IdeTestCase(ideTestCase.TestMethod, ideTestCase.TestCaseDisplayName, ideTestCase.UniqueID, ideTestCase.Explicit, ideTestCase.VisualStudioInstanceKey, ideTestCase.SkipReason, ideTestCase.SkipType, ideTestCase.SkipUnless, ideTestCase.SkipWhen, ideTestCase.Traits, ideTestCase.TestMethodArguments, ideTestCase.SourceFilePath, ideTestCase.SourceLineNumber, ideTestCase.Timeout);
+                    return new IdeTestCase(ideTestCase.TestMethod, ideTestCase.TestCaseDisplayName, ideTestCase.UniqueID, ideTestCase.Explicit, ideTestCase.VisualStudioInstanceKey, ideTestCase.SkipExceptions, ideTestCase.SkipReason, ideTestCase.SkipType, ideTestCase.SkipUnless, ideTestCase.SkipWhen, ideTestCase.Traits, ideTestCase.TestMethodArguments, ideTestCase.SourceFilePath, ideTestCase.SourceLineNumber, ideTestCase.Timeout);
 #else
                     return new IdeTestCase(diagnosticMessageSink, ideTestCase.DefaultMethodDisplay, ideTestCase.DefaultMethodDisplayOptions, ideTestCase.TestMethod, ideTestCase.VisualStudioInstanceKey, ideTestCase.TestMethodArguments);
 #endif
@@ -61,7 +61,7 @@ namespace Xunit.Harness
                 else if (testCase is IdeTheoryTestCase ideTheoryTestCase)
                 {
 #if USES_XUNIT_3
-                    return new IdeTheoryTestCase(ideTheoryTestCase.TestMethod, ideTheoryTestCase.TestCaseDisplayName, ideTheoryTestCase.UniqueID, ideTheoryTestCase.Explicit, ideTheoryTestCase.VisualStudioInstanceKey, ideTheoryTestCase.SkipReason, ideTheoryTestCase.SkipType, ideTheoryTestCase.SkipUnless, ideTheoryTestCase.SkipWhen, ideTheoryTestCase.Traits, ideTheoryTestCase.TestMethodArguments, ideTheoryTestCase.SourceFilePath, ideTheoryTestCase.SourceLineNumber, ideTheoryTestCase.Timeout);
+                    return new IdeTheoryTestCase(ideTheoryTestCase.TestMethod, ideTheoryTestCase.TestCaseDisplayName, ideTheoryTestCase.UniqueID, ideTheoryTestCase.Explicit, ideTheoryTestCase.VisualStudioInstanceKey, ideTheoryTestCase.SkipExceptions, ideTheoryTestCase.SkipReason, ideTheoryTestCase.SkipType, ideTheoryTestCase.SkipUnless, ideTheoryTestCase.SkipWhen, ideTheoryTestCase.Traits, ideTheoryTestCase.TestMethodArguments, ideTheoryTestCase.SourceFilePath, ideTheoryTestCase.SourceLineNumber, ideTheoryTestCase.Timeout);
 #else
                     return new IdeTheoryTestCase(diagnosticMessageSink, ideTheoryTestCase.DefaultMethodDisplay, ideTheoryTestCase.DefaultMethodDisplayOptions, ideTheoryTestCase.TestMethod, ideTheoryTestCase.VisualStudioInstanceKey, ideTheoryTestCase.TestMethodArguments);
 #endif
@@ -69,7 +69,7 @@ namespace Xunit.Harness
                 else if (testCase is IdeInstanceTestCase ideInstanceTestCase)
                 {
 #if USES_XUNIT_3
-                    return new IdeInstanceTestCase(ideInstanceTestCase.TestMethod, ideInstanceTestCase.TestCaseDisplayName, ideInstanceTestCase.UniqueID, ideInstanceTestCase.Explicit, ideInstanceTestCase.VisualStudioInstanceKey, ideInstanceTestCase.SkipReason, ideInstanceTestCase.SkipType, ideInstanceTestCase.SkipUnless, ideInstanceTestCase.SkipWhen, ideInstanceTestCase.Traits, ideInstanceTestCase.TestMethodArguments, ideInstanceTestCase.SourceFilePath, ideInstanceTestCase.SourceLineNumber, ideInstanceTestCase.Timeout);
+                    return new IdeInstanceTestCase(ideInstanceTestCase.TestMethod, ideInstanceTestCase.TestCaseDisplayName, ideInstanceTestCase.UniqueID, ideInstanceTestCase.Explicit, ideInstanceTestCase.VisualStudioInstanceKey, ideInstanceTestCase.SkipExceptions, ideInstanceTestCase.SkipReason, ideInstanceTestCase.SkipType, ideInstanceTestCase.SkipUnless, ideInstanceTestCase.SkipWhen, ideInstanceTestCase.Traits, ideInstanceTestCase.TestMethodArguments, ideInstanceTestCase.SourceFilePath, ideInstanceTestCase.SourceLineNumber, ideInstanceTestCase.Timeout);
 #else
                     return new IdeInstanceTestCase(diagnosticMessageSink, ideInstanceTestCase.DefaultMethodDisplay, ideInstanceTestCase.DefaultMethodDisplayOptions, ideInstanceTestCase.TestMethod, ideInstanceTestCase.VisualStudioInstanceKey, ideInstanceTestCase.TestMethodArguments);
 #endif
@@ -111,7 +111,7 @@ namespace Xunit.Harness
             {
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 #if USES_XUNIT_3
-                var result = XunitTestAssemblyRunner.Instance.Run(_testAssembly, _testCases, _executionMessageSink, _executionOptions).GetAwaiter().GetResult();
+                var result = XunitTestAssemblyRunner.Instance.Run(_testAssembly, _testCases, _executionMessageSink, _executionOptions, cancellationTokenSource.Token).GetAwaiter().GetResult();
 #else
                 var result = _testAssemblyRunner.RunAsync().GetAwaiter().GetResult();
 #endif

@@ -35,6 +35,7 @@ namespace Xunit.Threading
             string uniqueID,
             bool @explicit,
             VisualStudioInstanceKey visualStudioInstanceKey,
+            Type[]? skipExceptions = null,
             string? skipReason = null,
             Type? skipType = null,
             string? skipUnless = null,
@@ -44,7 +45,7 @@ namespace Xunit.Threading
             string? sourceFilePath = null,
             int? sourceLineNumber = null,
             int? timeout = null)
-            : base(testMethod, $"{testCaseDisplayName} ({visualStudioInstanceKey.Version})", $"{uniqueID}_{visualStudioInstanceKey.Version}", @explicit, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+            : base(testMethod, $"{testCaseDisplayName} ({visualStudioInstanceKey.Version})", $"{uniqueID}_{visualStudioInstanceKey.Version}", @explicit, skipExceptions, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
         {
         }
 #else

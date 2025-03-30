@@ -362,7 +362,7 @@ namespace Xunit.Harness
 #endif
 
 #if USES_XUNIT_3
-            return await XunitTestAssemblyRunner.Instance.Run((IXunitTestAssembly)testCollection.TestAssembly, testCases.CastOrToReadOnlyList(), ExecutionMessageSink, ExecutionOptions);
+            return await XunitTestAssemblyRunner.Instance.Run((IXunitTestAssembly)testCollection.TestAssembly, testCases.CastOrToReadOnlyList(), ExecutionMessageSink, ExecutionOptions, cancellationTokenSource.Token);
 #else
             using (var runner = new XunitTestAssemblyRunner(TestAssembly, testCases, DiagnosticMessageSink, executionMessageSinkFilter, ExecutionOptions))
             {

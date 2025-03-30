@@ -34,6 +34,7 @@ namespace Xunit.Threading
             bool @explicit,
             VisualStudioInstanceKey visualStudioInstanceKey,
             bool includeRootSuffixInDisplayName,
+            Type[]? skipExceptions = null,
             string? skipReason = null,
             Type? skipType = null,
             string? skipUnless = null,
@@ -43,7 +44,7 @@ namespace Xunit.Threading
             string? sourceFilePath = null,
             int? sourceLineNumber = null,
             int? timeout = null)
-            : base(testMethod, AdjustDisplayName(testCaseDisplayName, visualStudioInstanceKey, includeRootSuffixInDisplayName), AdjustUniqueID(uniqueID, visualStudioInstanceKey), @explicit, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
+            : base(testMethod, AdjustDisplayName(testCaseDisplayName, visualStudioInstanceKey, includeRootSuffixInDisplayName), AdjustUniqueID(uniqueID, visualStudioInstanceKey), @explicit, skipExceptions, skipReason, skipType, skipUnless, skipWhen, traits, testMethodArguments, sourceFilePath, sourceLineNumber, timeout)
         {
             SharedData = WpfTestSharedData.Instance;
             VisualStudioInstanceKey = visualStudioInstanceKey;
