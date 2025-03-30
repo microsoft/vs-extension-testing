@@ -23,7 +23,12 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeInstanceTestCase : IdeTestCaseBase, ISelfExecutingXunitTestCase
+    public sealed class IdeInstanceTestCase : IdeTestCaseBase
+#if USES_XUNIT_3
+#pragma warning disable SA1001 // Commas should be spaced correctly
+        , ISelfExecutingXunitTestCase
+#pragma warning restore SA1001 // Commas should be spaced correctly
+#endif
     {
         /// <summary>
         /// Keep track of unique <see cref="IdeInstanceTestCase"/> instances returned for a given discovery pass. The

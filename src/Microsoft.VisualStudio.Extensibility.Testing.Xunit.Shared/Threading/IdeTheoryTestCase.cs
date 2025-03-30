@@ -17,7 +17,12 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeTheoryTestCase : IdeTestCaseBase, ISelfExecutingXunitTestCase
+    public sealed class IdeTheoryTestCase : IdeTestCaseBase
+#if USES_XUNIT_3
+#pragma warning disable SA1001 // Commas should be spaced correctly
+        , ISelfExecutingXunitTestCase
+#pragma warning restore SA1001 // Commas should be spaced correctly
+#endif
     {
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("Called by the deserializer; should only be called by deriving classes for deserialization purposes", error: true)]
