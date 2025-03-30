@@ -77,9 +77,7 @@ namespace Xunit.Threading
             else
             {
 #if USES_XUNIT_3
-                return await IdeTestCaseRunner.RunAsync(SharedData, /*TODO:*/, messageBus, constructorArguments, /*TODO*/ [], aggregator, cancellationTokenSource);
-#else
-                return await new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey, this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource).RunAsync();
+                return await new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey).Run(this, Array.Empty<IXunitTest>(), messageBus, aggregator, cancellationTokenSource, displayName, SkipReason, ExplicitOption.Off, constructorArguments);
 #endif
             }
         }

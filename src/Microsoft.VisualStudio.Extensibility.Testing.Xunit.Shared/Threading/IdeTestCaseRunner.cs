@@ -18,12 +18,15 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeTestCaseRunner
-#if !USES_XUNIT_3
-        : XunitTestCaseRunner
-#endif
+    public sealed class IdeTestCaseRunner : XunitTestCaseRunner
     {
-#if !USES_XUNIT_3
+#if USES_XUNIT_3
+        public IdeTestCaseRunner(WpfTestSharedData sharedData, VisualStudioInstanceKey visualStudioInstanceKey)
+        {
+            SharedData = sharedData;
+            VisualStudioInstanceKey = visualStudioInstanceKey;
+        }
+#else
         public IdeTestCaseRunner(
             WpfTestSharedData sharedData,
             VisualStudioInstanceKey visualStudioInstanceKey,
@@ -40,6 +43,7 @@ namespace Xunit.Threading
             SharedData = sharedData;
             VisualStudioInstanceKey = visualStudioInstanceKey;
         }
+#endif
 
         public WpfTestSharedData SharedData
         {
@@ -50,20 +54,21 @@ namespace Xunit.Threading
         {
             get;
         }
-#endif
 
 #if USES_XUNIT_3
-        internal static async Task<RunSummary> RunAsync(WpfTestSharedData sharedData, IXunitTest test, IMessageBus messageBus, object[] constructorArguments, IReadOnlyList<BeforeAfterTestAttribute> beforeAfterAttributes, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+        protected override async ValueTask<RunSummary> RunTest(XunitTestCaseRunnerContext ctxt, IXunitTest test)
         {
             if (Process.GetCurrentProcess().ProcessName == "devenv")
             {
                 // We are already running inside Visual Studio
                 // TODO: Verify version under test
-                return await new InProcessIdeTestRunner().Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+#pragma warning disable CA1062 // Validate arguments of public methods
+                return await new InProcessIdeTestRunner().Run(test, ctxt.MessageBus, ctxt.ConstructorArguments, ExplicitOption.Off, ctxt.Aggregator, ctxt.CancellationTokenSource, ctxt.BeforeAfterTestAttributes);
+#pragma warning restore CA1062 // Validate arguments of public methods
             }
-            else if (sharedData.Exception is not null)
+            else if (SharedData.Exception is not null)
             {
-                return await new ErrorReportingIdeTestRunner(sharedData.Exception).Run(test, messageBus, constructorArguments, ExplicitOption.Off, aggregator, cancellationTokenSource, beforeAfterAttributes);
+                return await new ErrorReportingIdeTestRunner(SharedData.Exception).Run(test, ctxt.MessageBus, ctxt.ConstructorArguments, ExplicitOption.Off, ctxt.Aggregator, ctxt.CancellationTokenSource, ctxt.BeforeAfterTestAttributes);
             }
             else
             {
