@@ -23,7 +23,7 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeInstanceTestCase : IdeTestCaseBase
+    public sealed class IdeInstanceTestCase : IdeTestCaseBase, ISelfExecutingXunitTestCase
     {
         /// <summary>
         /// Keep track of unique <see cref="IdeInstanceTestCase"/> instances returned for a given discovery pass. The
@@ -109,8 +109,11 @@ namespace Xunit.Threading
             return candidateTestCase;
         }
 
-#if !USES_XUNIT_3 // Test case no longer responsible for running. TODO: Find out where to plug this logic.
+#if USES_XUNIT_3
+        public async ValueTask<RunSummary> Run(ExplicitOption explicitOption, IMessageBus messageBus, object?[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+#else
         public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+#endif
         {
             string displayName =
 #if USES_XUNIT_3
@@ -138,6 +141,5 @@ namespace Xunit.Threading
 #endif
             }
         }
-#endif
     }
 }

@@ -17,7 +17,7 @@ namespace Xunit.Threading
     using Xunit.v3;
 #endif
 
-    public sealed class IdeTestCase : IdeTestCaseBase
+    public sealed class IdeTestCase : IdeTestCaseBase, ISelfExecutingXunitTestCase
     {
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("Called by the deserializer; should only be called by deriving classes for deserialization purposes", error: true)]
@@ -51,8 +51,11 @@ namespace Xunit.Threading
         }
 #endif
 
-#if !USES_XUNIT_3 // Test case no longer responsible for running. TODO: Find out where to plug this logic.
+#if USES_XUNIT_3
+        public async ValueTask<RunSummary> Run(ExplicitOption explicitOption, IMessageBus messageBus, object?[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+#else
         public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments, ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource)
+#endif
         {
             string displayName =
 #if USES_XUNIT_3
@@ -73,9 +76,12 @@ namespace Xunit.Threading
             }
             else
             {
+#if USES_XUNIT_3
+                return await IdeTestCaseRunner.RunAsync(SharedData, /*TODO:*/, messageBus, constructorArguments, /*TODO*/ [], aggregator, cancellationTokenSource);
+#else
                 return await new IdeTestCaseRunner(SharedData, VisualStudioInstanceKey, this, DisplayName, SkipReason, constructorArguments, TestMethodArguments, messageBus, aggregator, cancellationTokenSource).RunAsync();
+#endif
             }
         }
-#endif
     }
 }

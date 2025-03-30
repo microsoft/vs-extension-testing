@@ -1420,7 +1420,7 @@ namespace Microsoft.VisualStudio
                         }
                     }
 
-                    var isXunit3 = compilation.ReferencedAssemblyNames.Any(assemblyName => assemblyName.Name == "xunit.v3.assert");
+                    var isXunit3 = compilation.ReferencedAssemblyNames.Any(assemblyName => assemblyName.Name.StartsWith("xunit.v3", StringComparison.Ordinal));
 
                     return new ReferenceDataModel(
                         hasSAsyncServiceProvider,
