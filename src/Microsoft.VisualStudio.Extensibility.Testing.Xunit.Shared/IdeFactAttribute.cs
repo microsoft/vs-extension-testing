@@ -19,6 +19,27 @@ namespace Xunit
             EnvironmentVariables = new string[0];
         }
 
+        public IdeFactAttribute(Type conditionType)
+        {
+            if (!typeof(ITestCondition).IsAssignableFrom(conditionType))
+            {
+                throw new ArgumentException($"The condition type '{conditionType.FullName}' must implement ITestCondition.", nameof(conditionType));
+            }
+        
+            var condition = (ITestCondition)Activator.CreateInstance(conditionType)!;
+        
+            if (!condition.ShouldRun)
+            {
+                Skip = condition.SkipReason ?? "Test condition not met.";
+            }
+        
+            MinVersion = VisualStudioVersion.Unspecified;
+            MaxVersion = VisualStudioVersion.Unspecified;
+            RootSuffix = null;
+            MaxAttempts = 0;
+            EnvironmentVariables = Array.Empty<string>();
+        }
+
         public VisualStudioVersion MinVersion
         {
             get;
