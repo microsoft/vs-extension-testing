@@ -14,6 +14,8 @@ pipelines:
           lastModifiedDate: 2025-05-09
         armory:
           lastModifiedDate: 2025-05-09
+        accessibilityinsights:
+          lastModifiedDate: 2025-07-18
       binary:
         credscan:
           lastModifiedDate: 2025-05-09
