@@ -1,5 +1,8 @@
 ﻿# Visual Studio Extension Testing
 
+> [!CAUTION]
+> This repository is archived. The code has moved to [dotnet/roslyn](https://github.com/dotnet/roslyn).
+
 This project allows Visual Studio extension developers to write integration tests that run inside an experimental
 instance of Visual Studio.
 
