@@ -13,6 +13,7 @@ namespace Xunit.Harness
     using System.Runtime.Remoting.Channels;
     using System.Runtime.Remoting.Channels.Ipc;
     using System.Runtime.Serialization.Formatters;
+    using System.Threading.Tasks;
     using Microsoft.VisualStudio.IntegrationTestService;
     using Windows.Win32;
     using Windows.Win32.Foundation;
@@ -27,9 +28,10 @@ namespace Xunit.Harness
         private readonly IpcChannel _integrationServiceChannel;
         private readonly VisualStudio_InProc _inProc;
 
-        public VisualStudioInstance(Process hostProcess, DTE dte, Version version, ImmutableHashSet<string> supportedPackageIds, string installationPath)
+        public VisualStudioInstance(Process hostProcess, Func<Task> stopWatchingProcessAsync, DTE dte, Version version, ImmutableHashSet<string> supportedPackageIds, string installationPath)
         {
             HostProcess = hostProcess;
+            StopWatchingProcessAsync = stopWatchingProcessAsync;
             Dte = dte;
             Version = version;
             SupportedPackageIds = supportedPackageIds;
@@ -83,6 +85,11 @@ namespace Xunit.Harness
         }
 
         internal Process HostProcess
+        {
+            get;
+        }
+
+        public Func<Task> StopWatchingProcessAsync
         {
             get;
         }
@@ -216,6 +223,8 @@ namespace Xunit.Harness
             {
                 return;
             }
+
+            StopWatchingProcessAsync().Wait();
 
             CleanUp();
 
